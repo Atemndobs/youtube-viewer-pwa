@@ -1,0 +1,12 @@
+# npm
+node_modules
+# next.js build files
+.next
+# environment variables
+.env
+.env.*
+!.env.examplevenv/
+*.pyc
+__pycache__/
+db.sqlite3
+.DS_Store
