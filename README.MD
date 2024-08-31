@@ -1,25 +1,90 @@
-<div align="center" style="margin: 30px;">
-    <a href="https://refine.dev">
-    <img alt="refine logo" src="https://refine.ams3.cdn.digitaloceanspaces.com/readme/refine-readme-banner.png">
-    </a>
-</div>
-<br/>
-<div align="center"><strong>refine</strong> is a <a href="https://reactjs.org/">React</a>-based framework for building internal tools, rapidly. ✨  It's is a a collection of helper hooks, components and providers. They are all decoupled from your UI components and business logic, so they never keep you from customizing your UI or coding your own flow.
-<br/>
+# YouTube Viewer Refine App
 
-<div align="center">
-  <sub>Created by <a href="https://refine.dev">refine</a></sub>
-</div>
+## Overview
 
-## About
+The **YouTube Viewer Refine App** is a web application built with Next.js and the Refine framework, allowing users to view and control YouTube videos. It also includes a Chrome extension that loads the current tab's URL into the input field of the app.
 
-[refine](https://refine.dev/) is **headless by design**, offering unlimited styling and customization options. Moreover, refine ships with ready-made integrations for [Ant Design](https://ant.design/), [Material UI](https://mui.com/material-ui/getting-started/overview/), [Mantine](https://mantine.dev/), and [Chakra UI](https://chakra-ui.com/) for convenience.
+## Features
 
-refine has connectors for 15+ backend services, including REST API, [GraphQL](https://graphql.org/), and popular services like [Airtable](https://www.airtable.com/), [Strapi](https://strapi.io/), [Supabase](https://supabase.com/), [Firebase](https://firebase.google.com/), and [Directus](https://directus.io/)
+- **Video Playback**: Enter a YouTube video URL to view and control playback.
+- **Playback Controls**: Play, stop, rewind, and forward the video.
+- **Chrome Extension**: Automatically load the current tab's URL into the input field when the extension is clicked.
 
-[Refer to documentation for more info about refine&#8594](https://refine.dev/docs/)
-[Step up to refine tutorials &#8594](https://refine.dev/docs/tutorial/introduction/index/)
+## Prerequisites
 
-## Blog Post
+- **Node.js**: Ensure you have Node.js installed. You can download it from [nodejs.org](https://nodejs.org/).
+- **npm**: Comes with Node.js. Ensure it's up to date by running `npm install -g npm`.
 
-For more blog and example, refer to the [refine blog posts](https://refine.dev/blog/).
+## Installation
+
+1. **Clone the Repository**
+
+   ```bash
+   git clone https://github.com/your-username/youtube-viewer.git
+   cd youtube-viewer
+Install Dependencies
+
+bash
+Copy code
+npm install
+Development
+To run the development server:
+
+bash
+Copy code
+npm run dev
+This will start the server on http://localhost:3000 by default.
+
+Chrome Extension
+To use the Chrome extension functionality:
+
+Update manifest.json and popup.js
+
+Ensure that manifest.json and popup.js are correctly configured to handle URL extraction and communication with the web app.
+
+Load the Extension into Chrome
+
+Open Chrome and go to chrome://extensions/.
+Enable "Developer mode" using the toggle in the top right.
+Click "Load unpacked" and select the extension/ directory inside your project.
+Building for Production
+To build the application for production:
+
+bash
+Copy code
+npm run build
+This will create an optimized version of the app in the .next directory.
+
+Deployment
+Deploy the production build to your preferred hosting provider. You can use Vercel, Netlify, or any other service that supports Next.js applications.
+
+Usage
+Open the Application
+
+Navigate to http://localhost:3000 in your web browser.
+
+Enter a YouTube URL
+
+Paste a YouTube video URL into the input field and click "Play Video" to start playback.
+
+Use Playback Controls
+
+Play: Start the video.
+Stop: Stop the video.
+Rewind 10s: Rewind the video by 10 seconds.
+Forward 10s: Forward the video by 10 seconds.
+Using the Chrome Extension
+
+Click the extension icon in the Chrome toolbar.
+The current tab's URL will be automatically populated in the input field.
+Contributing
+Contributions are welcome! If you find a bug or have a feature request, please open an issue or submit a pull request.
+
+License
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+Acknowledgements
+Refine: A framework for building React-based admin interfaces.
+Next.js: A React framework for server-rendered applications.
+Ant Design: A popular React UI framework.
+React-Youtube: A React component for embedding YouTube videos.

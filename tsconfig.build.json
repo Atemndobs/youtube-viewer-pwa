@@ -1,0 +1,13 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+      "noEmit": false,
+      "checkJs": false,
+      "skipLibCheck": true,
+      "noErrorTruncation": true,
+      "noImplicitAny": false,
+      "strict": false
+    },
+    "exclude": ["**/*.test.ts", "**/*.test.tsx", "node_modules"]
+  }
+  
