@@ -1,4 +1,4 @@
-# Use the official Node.js image as the base image
+# Stage 1: Build the application
 FROM node:18 AS builder
 
 # Set the working directory
@@ -16,22 +16,22 @@ COPY . .
 # Build the Next.js application
 RUN npm run build
 
-# Use a new stage for the final image
-FROM node:18
+# Stage 2: Create the final slim image
+FROM node:18-slim
 
 # Set the working directory
 WORKDIR /app
 
-# Copy built application from the builder stage
-COPY --from=builder /app /app
+# Copy only the necessary build artifacts from the previous stage
+COPY --from=builder /app/.next /app/.next
+COPY --from=builder /app/public /app/public
+COPY --from=builder /app/package*.json /app/
 
 # Install only production dependencies
-COPY package*.json ./
 RUN npm install --only=production
 
-# Expose application ports
+# Expose the application port
 EXPOSE 3000
-EXPOSE 3001
 
-# Start the application and server
-CMD ["sh", "-c", "node server/server.js & npm start"]
+# Start the application
+CMD ["npm", "start"]
