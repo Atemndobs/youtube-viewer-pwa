@@ -24,6 +24,10 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
       usePlaylistStore.getState().addToPlaylist(url);
       const updatedPlaylist = usePlaylistStore.getState().playlist;
       console.log('Updated playlist:', updatedPlaylist);
+
+
+      console.log(usePlaylistStore.getState());
+
       return res.status(200).json({ message: 'URL added to playlist', playlist: updatedPlaylist });
     } else {
       return res.status(400).json({ error: 'URL is required' });

@@ -21,14 +21,25 @@ const YouTubePlayer: React.FC = () => {
   const addToPlaylistStore = usePlaylistStore((state) => state.addToPlaylist);
   const setPlaylist = usePlaylistStore((state) => state.setPlaylist);
 
+
   useEffect(() => {
-    // Connect to SSE endpoint
+    // Create an EventSource instance to listen to SSE events
     const eventSource = new EventSource('/api/events');
 
+    console.log( '===========EVENT SOURCE========' );
+
     eventSource.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      console.log({ 'eventSource.onmessage received data': data });
-      setPlaylist(data.playlist); // Update Zustand store with the latest playlist
+      try {
+        const data = JSON.parse(event.data);
+        console.log('Received data from SSE:', data);
+        setPlaylist(data.playlist); // Update Zustand store with the latest playlist
+      } catch (error) {
+        console.error('Error parsing SSE data:', error);
+        notification.error({
+          message: 'Error',
+          description: 'Failed to parse data from the server.',
+        });
+      }
     };
 
     eventSource.onerror = (error) => {
@@ -138,10 +149,20 @@ const YouTubePlayer: React.FC = () => {
     player?.seekTo(currentTime + 10, true);
   };
 
+ 
+
   const refreshPlaylist = async () => {
+    console.log( '===========REFRESH BUTTON========' );
+    console.log( {playlist} );
+    const playlistStored = usePlaylistStore.getState().playlist;
+
+    console.log( '===========STORED PLAYLIST========' );
+    console.log( {playlistStored} );
+    
     try {
       const response = await fetch('/api/events');
       const data = await response.json();
+      console.log("Fetched data:", data); // Add this line to debug
       setPlaylist(data.playlist); // Update Zustand store with the refreshed playlist
       notification.success({
         message: 'Playlist Refreshed',
@@ -154,6 +175,7 @@ const YouTubePlayer: React.FC = () => {
       });
     }
   };
+  
 
   return (
     <Layout>
@@ -215,7 +237,7 @@ const YouTubePlayer: React.FC = () => {
             </Button>
           </Space>
 
-          <List
+          {/* <List
             header={<div style={{ color: 'white' }}>Playlist</div>}
             bordered
             dataSource={playlist} // Use Zustand playlist here
@@ -225,7 +247,33 @@ const YouTubePlayer: React.FC = () => {
               </List.Item>
             )}
             style={{ marginTop: '20px', background: 'black' }}
+          /> */}
+
+          <List
+            header={
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'white' }}>
+                <span>Playlist</span>
+                <Button
+                  icon={<ReloadOutlined />}
+                  onClick={refreshPlaylist} // Connect to your refresh function
+                  style={{ color: 'white', border: 'none', background: 'transparent' }}
+                >
+                  Refresh
+                </Button>
+              </div>
+            }
+            bordered
+            dataSource={playlist} // Use Zustand playlist here
+            renderItem={(url) => (
+              <List.Item onClick={() => handlePlaylistItemClick(url)} style={{ cursor: 'pointer', color: 'white' }}>
+                {url}
+              </List.Item>
+            )}
+            style={{ marginTop: '20px', background: 'black' }}
           />
+
+
+
         </Card>
       </Content>
     </Layout>
