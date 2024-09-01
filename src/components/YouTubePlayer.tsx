@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import YouTube from 'react-youtube';
 import { Layout, Card, Input, Button, Space, Switch, List } from 'antd';
-import { PlayCircleOutlined, StopOutlined, BackwardOutlined, ForwardOutlined, PlusOutlined } from '@ant-design/icons';
+import { PlayCircleOutlined, StopOutlined, BackwardOutlined, ForwardOutlined } from '@ant-design/icons';
 
 const { Content } = Layout;
 
@@ -11,65 +11,49 @@ const YouTubePlayer: React.FC = () => {
   const [videoId, setVideoId] = useState('');
   const [player, setPlayer] = useState<YT.Player | null>(null);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
-  const [autoPlay, setAutoPlay] = useState(false);
-  const [playlist, setPlaylist] = useState<string[]>([]);
-  const [currentUrl, setCurrentUrl] = useState('');
+  const [autoPlay, setAutoPlay] = useState(false); // State to control autoplay
+  const [playlist, setPlaylist] = useState<string[]>([]); // State for the playlist
+  const [inputUrl, setInputUrl] = useState(''); // State to control the input field
 
   useEffect(() => {
-    fetchPlaylist();
-  }, []);
-
-  const fetchPlaylist = async () => {
-    try {
-      const res = await fetch('/api/playlist');
-      const data = await res.json();
-      setPlaylist(data.playlist);
-    } catch (error) {
-      console.error('Failed to fetch playlist:', error);
-    }
-  };
-
-  const addToPlaylist = async () => {
-    if (!currentUrl) return;
-
-    if (playlist.includes(currentUrl)) {
-      console.log('URL already in playlist:', currentUrl);
-      return;  // Prevent adding the same URL again
-    }
-
-    try {
-      const res = await fetch('/api/add-to-playlist', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ url: currentUrl }),
-      });
-
-      const data = await res.json();
-
-      if (data.playlist) {
-        console.log('Adding to playlist:', currentUrl);
-        setPlaylist(data.playlist); // Update playlist state with the new playlist
-      } else {
-        console.error('Error: No playlist returned from API');
+    // Delay playback by 1 second if autoplay is enabled
+    const timer = setTimeout(() => {
+      if (isPlayerReady && player && videoId && autoPlay) {
+        player.playVideo();
       }
-    } catch (error) {
-      console.error('Failed to add to playlist:', error);
-    }
-  };
+    }, 1000); // 1000 milliseconds = 1 second
+
+    // Clean up the timer if videoId changes before the timer completes
+    return () => clearTimeout(timer);
+  }, [videoId, isPlayerReady, player, autoPlay]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const url = e.target.value;
-    setCurrentUrl(url);
-    const id = url.split('v=')[1]?.split('&')[0];
+    setInputUrl(url); // Update the input field
+    const id = url.split('v=')[1]?.split('&')[0]; // Extract video ID from YouTube URL
     setVideoId(id || '');
-    setIsPlayerReady(false);
+    setIsPlayerReady(false); // Reset player readiness when a new video ID is set
+  };
+
+  const addToPlaylist = () => {
+    if (inputUrl && !playlist.includes(inputUrl)) {
+      setPlaylist([...playlist, inputUrl]);
+    }
+  };
+
+  const handlePlaylistItemClick = (url: string) => {
+    const id = url.split('v=')[1]?.split('&')[0]; // Extract video ID from YouTube URL
+    setVideoId(id || '');
+    setInputUrl(url); // Update the input field with the selected URL
+    setIsPlayerReady(false); // Reset player readiness when a new video ID is set
+    if (autoPlay) {
+      setTimeout(() => player?.playVideo(), 500); // Play video if autoplay is enabled
+    }
   };
 
   const onPlayerReady = (event: { target: YT.Player }) => {
     setPlayer(event.target);
-    setIsPlayerReady(true);
+    setIsPlayerReady(true); // Set player as ready when the player is initialized
   };
 
   const playVideo = () => {
@@ -92,12 +76,14 @@ const YouTubePlayer: React.FC = () => {
 
   return (
     <Layout>
+      {/* Main Content */}
       <Content style={{ padding: '50px', display: 'flex', justifyContent: 'center', background: 'black' }}>
         <Card
           title="YouTube Video Viewer"
           bordered={false}
           style={{ width: '100%', maxWidth: '800px', background: 'black' }}
         >
+          {/* Autoplay Toggle */}
           <div className="mb-4 flex items-center">
             <Switch
               checked={autoPlay}
@@ -109,17 +95,12 @@ const YouTubePlayer: React.FC = () => {
 
           <Input
             placeholder="Enter YouTube video URL"
+            value={inputUrl} // Bind input value to state
             onChange={handleInputChange}
-            onClick={(e) => e.currentTarget.select()}
+            onFocus={(e) => e.target.select()} // Highlight the entire text when the input is focused
             className="mb-5 bg-gray-400"
           />
-
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={addToPlaylist}
-            style={{ marginBottom: '20px' }}
-          >
+          <Button type="primary" onClick={addToPlaylist} className="mb-5">
             Add to Playlist
           </Button>
 
@@ -149,16 +130,17 @@ const YouTubePlayer: React.FC = () => {
             </Button>
           </Space>
 
+          {/* Playlist */}
           <List
-            header={<div>Playlist</div>}
+            header={<div style={{ color: 'white' }}>Playlist</div>}
             bordered
             dataSource={playlist}
-            renderItem={url => (
-              <List.Item onClick={() => handleInputChange({ target: { value: url } } as React.ChangeEvent<HTMLInputElement>)}>
+            renderItem={(url) => (
+              <List.Item onClick={() => handlePlaylistItemClick(url)} style={{ cursor: 'pointer', color: 'white' }}>
                 {url}
               </List.Item>
             )}
-            style={{ marginTop: '20px' }}
+            style={{ marginTop: '20px', background: 'black' }}
           />
         </Card>
       </Content>

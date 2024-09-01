@@ -1,30 +1,20 @@
-const addToPlaylist = async () => {
-    if (!currentUrl) return;
-  
-    if (playlist.includes(currentUrl)) {
-      console.log('URL already in playlist:', currentUrl);
-      return;  // Prevent adding the same URL again
+import { NextApiRequest, NextApiResponse } from 'next';
+
+// In-memory playlist storage
+let playlist: string[] = [];
+
+export default function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method === 'POST') {
+    const { url } = req.body;
+
+    if (url) {
+      playlist.push(url);
+      console.log('Updated playlist:', playlist);
+      res.status(200).json({ message: 'URL added to playlist', playlist });
+    } else {
+      res.status(400).json({ error: 'URL is required' });
     }
-    
-    try {
-      const res = await fetch('/api/add-to-playlist', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ url: currentUrl }),
-      });
-  
-      const data = await res.json();
-  
-      if (data.playlist) {
-        console.log('Adding to playlist:', currentUrl);
-        setPlaylist(data.playlist); // Update playlist state with the new playlist
-      } else {
-        console.error('Error: No playlist returned from API');
-      }
-    } catch (error) {
-      console.error('Failed to add to playlist:', error);
-    }
-  };
-  
+  } else {
+    res.status(405).json({ error: 'Method not allowed' });
+  }
+}
