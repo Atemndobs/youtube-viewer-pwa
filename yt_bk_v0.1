@@ -2,20 +2,24 @@
 
 import React, { useState, useEffect } from 'react';
 import YouTube from 'react-youtube';
-import { Layout, Card, Input, Button, Space, Switch } from 'antd';
+import { Layout, Card, Input, Button, Space, Switch, List } from 'antd';
 import { PlayCircleOutlined, StopOutlined, BackwardOutlined, ForwardOutlined } from '@ant-design/icons';
 
-
 const { Content } = Layout;
+
+const isValidYouTubeUrl = (url: string): boolean => {
+  const regex = /^(https?\:\/\/)?(www\.youtube\.com\/watch\?v=|youtu\.be\/)[a-zA-Z0-9_-]{11}$/;
+  return regex.test(url);
+};
 
 const YouTubePlayer: React.FC = () => {
   const [videoId, setVideoId] = useState('');
   const [player, setPlayer] = useState<YT.Player | null>(null);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [autoPlay, setAutoPlay] = useState(false); // State to control autoplay
-
-
-  
+  const [playlist, setPlaylist] = useState<string[]>([]); // State for the playlist
+  const [inputUrl, setInputUrl] = useState(''); // State to control the input field
+  const [error, setError] = useState(''); // State to handle error messages
 
   useEffect(() => {
     // Delay playback by 1 second if autoplay is enabled
@@ -31,9 +35,34 @@ const YouTubePlayer: React.FC = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const url = e.target.value;
+    setInputUrl(url); // Update the input field
+    setError(''); // Clear any previous errors
     const id = url.split('v=')[1]?.split('&')[0]; // Extract video ID from YouTube URL
     setVideoId(id || '');
     setIsPlayerReady(false); // Reset player readiness when a new video ID is set
+  };
+
+  const addToPlaylist = () => {
+    if (!inputUrl) return;
+
+    if (!isValidYouTubeUrl(inputUrl)) {
+      setError("Please enter a valid YouTube URL.");
+      return;
+    }
+
+    if (!playlist.includes(inputUrl)) {
+      setPlaylist([...playlist, inputUrl]);
+    }
+  };
+
+  const handlePlaylistItemClick = (url: string) => {
+    const id = url.split('v=')[1]?.split('&')[0]; // Extract video ID from YouTube URL
+    setVideoId(id || '');
+    setInputUrl(url); // Update the input field with the selected URL
+    setIsPlayerReady(false); // Reset player readiness when a new video ID is set
+    if (autoPlay) {
+      setTimeout(() => player?.playVideo(), 500); // Play video if autoplay is enabled
+    }
   };
 
   const onPlayerReady = (event: { target: YT.Player }) => {
@@ -80,9 +109,21 @@ const YouTubePlayer: React.FC = () => {
 
           <Input
             placeholder="Enter YouTube video URL"
+            value={inputUrl} // Bind input value to state
             onChange={handleInputChange}
+            onFocus={(e) => e.target.select()} // Highlight the entire text when the input is focused
             className="mb-5 bg-gray-400"
           />
+          <Button type="primary" onClick={addToPlaylist} className="mb-5">
+            Add to Playlist
+          </Button>
+
+          {error && (
+            <div className="mb-5 p-4 bg-red-600 text-white rounded">
+              {error}
+            </div>
+          )}
+
           {videoId && (
             <div style={{ marginBottom: '20px', position: 'relative', paddingTop: '56.25%', background: 'black' }}>
               <YouTube
@@ -108,6 +149,19 @@ const YouTubePlayer: React.FC = () => {
               Forward 10s
             </Button>
           </Space>
+
+          {/* Playlist */}
+          <List
+            header={<div style={{ color: 'white' }}>Playlist</div>}
+            bordered
+            dataSource={playlist}
+            renderItem={(url) => (
+              <List.Item onClick={() => handlePlaylistItemClick(url)} style={{ cursor: 'pointer', color: 'white' }}>
+                {url}
+              </List.Item>
+            )}
+            style={{ marginTop: '20px', background: 'black' }}
+          />
         </Card>
       </Content>
     </Layout>
