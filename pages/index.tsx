@@ -4,7 +4,9 @@ import { Layout } from '../src/components/Layout'; // Adjust path as necessary
 
 const HomePage: React.FC = () => {
   return (
-    <YouTubePlayer />
+    <Layout>
+      <YouTubePlayer />
+    </Layout>
   );
 };
 

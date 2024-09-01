@@ -2,24 +2,48 @@
 
 import React, { useState, useEffect } from 'react';
 import YouTube from 'react-youtube';
-import { Layout, Card, Input, Button, Space, Switch, List, message } from 'antd';
-import { PlayCircleOutlined, StopOutlined, BackwardOutlined, ForwardOutlined } from '@ant-design/icons';
+import { Layout, Card, Input, Button, Space, Switch, List, notification } from 'antd';
+import { PlayCircleOutlined, StopOutlined, BackwardOutlined, ForwardOutlined, ReloadOutlined } from '@ant-design/icons';
+import { isValidYouTubeUrl } from '../utils';
+import usePlaylistStore from '../store/playlistStore'; // Import Zustand store
 
 const { Content } = Layout;
-
-const isValidYouTubeUrl = (url: string): boolean => {
-  const regex = /^(https?\:\/\/)?(www\.youtube\.com\/watch\?v=|youtu\.be\/)[a-zA-Z0-9_-]{11}$/;
-  return regex.test(url);
-};
 
 const YouTubePlayer: React.FC = () => {
   const [videoId, setVideoId] = useState('');
   const [player, setPlayer] = useState<YT.Player | null>(null);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [autoPlay, setAutoPlay] = useState(false);
-  const [playlist, setPlaylist] = useState<string[]>([]);
   const [inputUrl, setInputUrl] = useState('');
-  const [error, setError] = useState('');
+
+  // Access Zustand store
+  const playlist = usePlaylistStore((state) => state.playlist);
+  const addToPlaylistStore = usePlaylistStore((state) => state.addToPlaylist);
+  const setPlaylist = usePlaylistStore((state) => state.setPlaylist);
+
+  useEffect(() => {
+    // Connect to SSE endpoint
+    const eventSource = new EventSource('/api/events');
+
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      console.log({ 'eventSource.onmessage received data': data });
+      setPlaylist(data.playlist); // Update Zustand store with the latest playlist
+    };
+
+    eventSource.onerror = (error) => {
+      console.error('EventSource error:', error);
+      notification.error({
+        message: 'Connection Error',
+        description: 'Failed to connect to the server for real-time updates.',
+      });
+    };
+
+    // Clean up on component unmount
+    return () => {
+      eventSource.close();
+    };
+  }, [setPlaylist]);
 
   useEffect(() => {
     // Delay playback by 1 second if autoplay is enabled
@@ -29,24 +53,29 @@ const YouTubePlayer: React.FC = () => {
       }
     }, 1000);
 
+    // Clean up the timer if videoId changes before the timer completes
     return () => clearTimeout(timer);
   }, [videoId, isPlayerReady, player, autoPlay]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const url = e.target.value;
     setInputUrl(url);
-    setError('');
     const id = url.split('v=')[1]?.split('&')[0];
     setVideoId(id || '');
-    setIsPlayerReady(false);
+    setIsPlayerReady(false); // Reset player readiness when a new video ID is set
   };
 
   const addToPlaylist = async () => {
-    if (!inputUrl) return;
-
     if (!isValidYouTubeUrl(inputUrl)) {
-      setError("Please enter a valid YouTube URL.");
+      notification.error({
+        message: 'Invalid URL',
+        description: 'Please enter a valid YouTube URL.',
+      });
       return;
+    }
+
+    if (!playlist.includes(inputUrl)) {
+      addToPlaylistStore(inputUrl); // Add to Zustand store
     }
 
     try {
@@ -55,16 +84,24 @@ const YouTubePlayer: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: inputUrl }),
       });
-      const data = await response.json();
 
+      const data = await response.json();
       if (response.ok) {
-        setPlaylist(data.playlist);
-        message.success('URL added to playlist');
+        notification.success({
+          message: 'Success',
+          description: data.message,
+        });
       } else {
-        setError(data.error);
+        notification.error({
+          message: 'Error',
+          description: data.error,
+        });
       }
-    } catch (err) {
-      setError('An error occurred while adding to the playlist.');
+    } catch (error) {
+      notification.error({
+        message: 'Network Error',
+        description: 'There was an error communicating with the server.',
+      });
     }
   };
 
@@ -81,7 +118,6 @@ const YouTubePlayer: React.FC = () => {
   const onPlayerReady = (event: { target: YT.Player }) => {
     setPlayer(event.target);
     setIsPlayerReady(true);
-    console.log('Player is ready');
   };
 
   const playVideo = () => {
@@ -102,13 +138,36 @@ const YouTubePlayer: React.FC = () => {
     player?.seekTo(currentTime + 10, true);
   };
 
+  const refreshPlaylist = async () => {
+    try {
+      const response = await fetch('/api/events');
+      const data = await response.json();
+      setPlaylist(data.playlist); // Update Zustand store with the refreshed playlist
+      notification.success({
+        message: 'Playlist Refreshed',
+        description: 'The playlist has been successfully refreshed.',
+      });
+    } catch (error) {
+      notification.error({
+        message: 'Refresh Error',
+        description: 'There was an error refreshing the playlist.',
+      });
+    }
+  };
+
   return (
     <Layout>
-      <Content style={{ padding: '50px', display: 'flex', justifyContent: 'center', background: 'black' }}>
+      <Content style={{ padding: '50px', display: 'flex', justifyContent: 'center', background: 'black'}}>
         <Card
           title="YouTube Video Viewer"
+          className='bg-gray-950 text-white'
           bordered={false}
-          style={{ width: '100%', maxWidth: '800px', background: 'black' }}
+          style={{ width: '100%', maxWidth: '800px' }}
+          extra={
+            <Button icon={<ReloadOutlined />} onClick={refreshPlaylist} style={{ color: 'white', border: 'none', background: 'transparent' }}>
+              Refresh
+            </Button>
+          }
         >
           <div className="mb-4 flex items-center">
             <Switch
@@ -129,12 +188,6 @@ const YouTubePlayer: React.FC = () => {
           <Button type="primary" onClick={addToPlaylist} className="mb-5">
             Add to Playlist
           </Button>
-
-          {error && (
-            <div className="mb-4 p-2 bg-red-600 text-white">
-              {error}
-            </div>
-          )}
 
           {videoId && (
             <div style={{ marginBottom: '20px', position: 'relative', paddingTop: '56.25%', background: 'black' }}>
@@ -165,7 +218,7 @@ const YouTubePlayer: React.FC = () => {
           <List
             header={<div style={{ color: 'white' }}>Playlist</div>}
             bordered
-            dataSource={playlist}
+            dataSource={playlist} // Use Zustand playlist here
             renderItem={(url) => (
               <List.Item onClick={() => handlePlaylistItemClick(url)} style={{ cursor: 'pointer', color: 'white' }}>
                 {url}
