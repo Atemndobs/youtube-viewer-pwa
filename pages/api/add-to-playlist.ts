@@ -1,7 +1,7 @@
-// pages/api/add-to-playlist.ts
 import { NextApiRequest, NextApiResponse } from 'next';
 import { isValidYouTubeUrl } from '../../src/utils';
 import usePlaylistStore from '../../src/store/playlistStore';
+import { updatePlaylist } from '../../server/websocketServer'; // Ensure the path is correct
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'POST') {
@@ -25,8 +25,8 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
       const updatedPlaylist = usePlaylistStore.getState().playlist;
       console.log('Updated playlist:', updatedPlaylist);
 
-
-      console.log(usePlaylistStore.getState());
+      // Update WebSocket server with the new playlist
+        updatePlaylist(updatedPlaylist);
 
       return res.status(200).json({ message: 'URL added to playlist', playlist: updatedPlaylist });
     } else {

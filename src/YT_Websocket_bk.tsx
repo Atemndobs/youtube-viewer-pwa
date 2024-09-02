@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import YouTube from 'react-youtube';
 import { Layout, Card, Input, Button, Space, Switch, List, notification } from 'antd';
 import { PlayCircleOutlined, StopOutlined, BackwardOutlined, ForwardOutlined, ReloadOutlined } from '@ant-design/icons';
@@ -23,13 +23,12 @@ const YouTubePlayer: React.FC = () => {
   const setPlaylist = usePlaylistStore((state) => state.setPlaylist);
 
   // WebSocket URL
-  const socketUrl = 'ws://localhost:8681'; // Replace with your WebSocket server URL
+  const socketUrl = 'ws://localhost:8080'; // Replace with your WebSocket server URL
+
   // Initialize WebSocket connection
   const { sendMessage, lastMessage, readyState } = useWebSocket(socketUrl, {
     shouldReconnect: (closeEvent) => true, // Reconnect on errors
   });
-
-
 
   // Handle incoming messages
   useEffect(() => {
@@ -37,15 +36,13 @@ const YouTubePlayer: React.FC = () => {
       try {
         const data = JSON.parse(lastMessage.data);
         console.log('Received data from WebSocket:', data);
-        addToPlaylistStore(data.playlist); // Add to Zustand store
-        // addToPlaylistStore(data.playlist); 
-        // setPlaylist(data.playlist); 
+        setPlaylist(data.playlist); // Update Zustand store with the latest playlist
       } catch (error) {
         console.error('Error parsing WebSocket data:', error);
         notification.error({
           message: 'Error',
           description: 'Failed to parse data from the WebSocket.',
-        }); 
+        });
       }
     }
   }, [lastMessage, setPlaylist]);
@@ -54,46 +51,6 @@ const YouTubePlayer: React.FC = () => {
   useEffect(() => {
     console.log(`WebSocket connection status: ${readyState}`);
   }, [readyState]);
-
-
-
-  // useEffect(() => {
-  //   const ws = new WebSocket('ws://localhost:8681');
-
-  //   ws.onmessage = (event) => {
-  //     try {
-  //       const data = JSON.parse(event.data);
-  //       console.log('Received data from WebSocket:', data);
-  //       //setPlaylist(data.playlist); // Update Zustand store with the playlist data from WebSocket
-  //       addToPlaylistStore(data.playlist); // Update Zustand store with the playlist data from WebSocket      
-  //     } catch (error) {
-  //       console.error('Error parsing WebSocket data:', error);
-  //       notification.error({
-  //         message: 'Error',
-  //         description: 'Failed to parse data from WebSocket.',
-  //       });
-  //     }
-  //   };
-
-  //   ws.onerror = (error) => {
-  //     console.error('WebSocket error:', error);
-  //     notification.error({
-  //       message: 'Connection Error',
-  //       description: 'Failed to connect to the server for real-time updates.',
-  //     });
-  //   };
-
-  //   ws.onclose = () => {
-  //     console.log('WebSocket connection closed');
-  //   };
-
-  //   return () => {
-  //     ws.close();
-  //   };
-  // }, [setPlaylist]);
-
-
-
 
   useEffect(() => {
     // Delay playback by 1 second if autoplay is enabled
@@ -124,36 +81,35 @@ const YouTubePlayer: React.FC = () => {
       return;
     }
 
-    if (!playlist.includes(inputUrl)) {
-      addToPlaylistStore(inputUrl); // Add to Zustand store
-      setInputUrl('');
-    }
-
-    // try {
-    //   const response = await fetch('/api/add-to-playlist', {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify({ url: inputUrl }),
-    //   });
-
-    //   const data = await response.json();
-    //   if (response.ok) {
-    //     notification.success({
-    //       message: 'Success',
-    //       description: data.message,
-    //     });
-    //   } else {
-    //     notification.error({
-    //       message: 'Error',
-    //       description: data.error,
-    //     });
-    //   }
-    // } catch (error) {
-    //   notification.error({
-    //     message: 'Network Error',
-    //     description: 'There was an error communicating with the server.',
-    //   });
+    // if (!playlist.includes(inputUrl)) {
+    //   addToPlaylistStore(inputUrl); // Add to Zustand store
     // }
+
+    try {
+      const response = await fetch('/api/add-to-playlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: inputUrl }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        notification.success({
+          message: 'Success',
+          description: data.message,
+        });
+      } else {
+        notification.error({
+          message: 'Error',
+          description: data.error,
+        });
+      }
+    } catch (error) {
+      notification.error({
+        message: 'Network Error',
+        description: 'There was an error communicating with the server.',
+      });
+    }
   };
 
   const handlePlaylistItemClick = (url: string) => {
@@ -189,20 +145,10 @@ const YouTubePlayer: React.FC = () => {
     player?.seekTo(currentTime + 10, true);
   };
 
- 
-
   const refreshPlaylist = async () => {
-    console.log( '===========REFRESH BUTTON========' );
-    console.log( {playlist} );
-    const playlistStored = usePlaylistStore.getState().playlist;
-
-    console.log( '===========STORED PLAYLIST========' );
-    console.log( {playlistStored} );
-    
     try {
       const response = await fetch('/api/events');
       const data = await response.json();
-      console.log("Fetched data:", data); // Add this line to debug
       setPlaylist(data.playlist); // Update Zustand store with the refreshed playlist
       notification.success({
         message: 'Playlist Refreshed',
@@ -215,32 +161,21 @@ const YouTubePlayer: React.FC = () => {
       });
     }
   };
-  
 
   return (
     <Layout>
-      <Content style={{ padding: '50px', display: 'flex', justifyContent: 'center', background: 'black'}}>
+      <Content style={{ padding: '50px', display: 'flex', justifyContent: 'center', background: 'black' }}>
         <Card
           title="YouTube Video Viewer"
           className='bg-gray-950 text-white'
           bordered={false}
           style={{ width: '100%', maxWidth: '800px' }}
-          // extra={
-          //   <Button icon={<ReloadOutlined />} onClick={refreshPlaylist} style={{ color: 'white', border: 'none', background: 'transparent' }}>
-          //     Refresh
-          //   </Button>
-          // }
+          extra={
+            <Button icon={<ReloadOutlined />} onClick={refreshPlaylist} style={{ color: 'white', border: 'none', background: 'transparent' }}>
+              Refresh
+            </Button>
+          }
         >
-
-
-          {/* <div>
-            <button onClick={() => sendMessage('Hello')}>Send Message</button>
-            <p>Last message: {lastMessage ? lastMessage.data : null}</p>
-          </div> */}
-
-
-
-
           <div className="mb-4 flex items-center">
             <Switch
               checked={autoPlay}
@@ -273,36 +208,21 @@ const YouTubePlayer: React.FC = () => {
           )}
 
           <Space style={{ display: 'flex', justifyContent: 'space-around' }}>
-            <Button type="link" icon={<PlayCircleOutlined />} onClick={playVideo}>
+            <Button type="primary" icon={<PlayCircleOutlined />} onClick={playVideo}>
               Play
             </Button>
-            <Button type="link" icon={<StopOutlined />} onClick={stopVideo}>
+            <Button type="default" icon={<StopOutlined />} onClick={stopVideo}>
               Stop
             </Button>
-            <Button type="link" icon={<BackwardOutlined />} onClick={rewindVideo}>
+            <Button type="default" icon={<BackwardOutlined />} onClick={rewindVideo}>
               Rewind 10s
             </Button>
-            <Button type="link" icon={<ForwardOutlined />} onClick={forwardVideo}>
+            <Button type="default" icon={<ForwardOutlined />} onClick={forwardVideo}>
               Forward 10s
             </Button>
           </Space>
 
           <List
-            header={<div style={{ color: 'white' }}>Playlist</div>}
-            bordered
-            dataSource={playlist} // Use Zustand playlist here
-            renderItem={(url) => (
-              <List.Item onClick={() => handlePlaylistItemClick(url)} style={{ cursor: 'pointer', color: 'white' }}>
-                <Button type="link" icon={<PlayCircleOutlined />} onClick={playVideo}>
-                  Play  
-                </Button>
-                {url}
-              </List.Item>
-            )}
-            style={{ marginTop: '20px', background: 'black' }}
-          />
-
-          {/* <List
             header={
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'white' }}>
                 <span>Playlist</span>
@@ -323,11 +243,7 @@ const YouTubePlayer: React.FC = () => {
               </List.Item>
             )}
             style={{ marginTop: '20px', background: 'black' }}
-          /> */}
-
-
-
-
+          />
         </Card>
       </Content>
     </Layout>

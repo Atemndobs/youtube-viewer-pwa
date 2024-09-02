@@ -14,9 +14,11 @@ const usePlaylistStore = create<PlaylistStore>((set) => ({
   addToPlaylist: (url) => set((state) => ({
     playlist: [...state.playlist, url]
   })),
-  setPlaylist: (urls) => set(() => ({
-    playlist: urls,
-  })), // Add this function
+  // setPlaylist: (urls) => set(() => ({
+  //   playlist: urls,
+  // })), // Add this function
+
+  setPlaylist: (playlist) => set({ playlist }),
 }));
 
 export default usePlaylistStore;
