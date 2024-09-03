@@ -320,9 +320,10 @@ const YouTubePlayer: React.FC = () => {
             dataSource={playlist} // Use Zustand playlist here
             renderItem={(url) => (
               <List.Item
+                onClick={() => handlePlaylistItemClick(url)} 
                 style={{ cursor: 'pointer', color: 'white', display: 'flex', justifyContent: 'space-between' }}
               >
-                <Button type="link" icon={<PlayCircleOutlined />} onClick={playVideo}>
+                <Button type="link" icon={<PlayCircleOutlined />}>
                   Play  
                 </Button>
                 {url}
