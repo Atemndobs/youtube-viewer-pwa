@@ -323,7 +323,7 @@ const YouTubePlayer: React.FC = () => {
                 onClick={() => handlePlaylistItemClick(url)} 
                 style={{ cursor: 'pointer', color: 'white', display: 'flex', justifyContent: 'space-between' }}
               >
-                <Button type="link" icon={<PlayCircleOutlined />}>
+                <Button type="link" icon={<PlayCircleOutlined />} onClick={playVideo}>
                   Play  
                 </Button>
                 {url}
