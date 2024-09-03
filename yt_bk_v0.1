@@ -3,9 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import YouTube from 'react-youtube';
 import { Layout, Card, Input, Button, Space, Switch, List, notification } from 'antd';
-import { PlayCircleOutlined, StopOutlined, BackwardOutlined, ForwardOutlined, ReloadOutlined } from '@ant-design/icons';
-import { isValidYouTubeUrl } from '../utils';
+import { PlayCircleOutlined, StopOutlined, BackwardOutlined, ForwardOutlined, ReloadOutlined, MinusCircleOutlined, DeleteOutlined } from '@ant-design/icons';
+import { isValidYouTubeUrl, validateAndConvertYouTubeUrl } from '../utils';
 import usePlaylistStore from '../store/playlistStore'; // Import Zustand store
+import useWebSocket from 'react-use-websocket';
 
 const { Content } = Layout;
 
@@ -21,71 +22,92 @@ const YouTubePlayer: React.FC = () => {
   const addToPlaylistStore = usePlaylistStore((state) => state.addToPlaylist);
   const setPlaylist = usePlaylistStore((state) => state.setPlaylist);
 
+  // WebSocket URL
+  const socketUrl = 'ws://localhost:8681'; // Replace with your WebSocket server URL
+  // Initialize WebSocket connection
+  const { sendMessage, lastMessage, readyState } = useWebSocket(socketUrl, {
+    shouldReconnect: (closeEvent) => true, // Reconnect on errors
+  });
+  const validatedUrl = validateAndConvertYouTubeUrl(inputUrl);
+
+  // Function to clear the playlist
+  const clearPlaylist = () => {
+    setPlaylist([]);
+    sendMessage(JSON.stringify({ action: 'clear' })); // Notify WebSocket server to clear playlist
+  };
+
+  // Function to remove a specific item from the playlist
+  const removeFromPlaylist = (url: string) => {
+    const updatedPlaylist = playlist.filter(item => item !== url);
+    setPlaylist(updatedPlaylist);
+    sendMessage(JSON.stringify({ action: 'remove', url })); // Notify WebSocket server to remove item
+  };
+
+
+  // Handle incoming messages
+  useEffect(() => {
+    if (lastMessage !== null) {
+      try {
+        const data = JSON.parse(lastMessage.data);
+        console.log('Received data from WebSocket:', data);
+        if (data.playlist) {
+          setPlaylist(data.playlist);
+        }
+        // addToPlaylistStore(data.playlist); // Add to Zustand store
+        // addToPlaylistStore(data.playlist); 
+        // setPlaylist(data.playlist); 
+      } catch (error) {
+        console.error('Error parsing WebSocket data:', error);
+        notification.error({
+          message: 'Error',
+          description: 'Failed to parse data from the WebSocket.',
+        }); 
+      }
+    }
+  }, [lastMessage, setPlaylist]);
+
+  // Handle connection status changes
+  useEffect(() => {
+    console.log(`WebSocket connection status: ${readyState}`);
+  }, [readyState]);
+
+
 
   // useEffect(() => {
-  //   // Create an EventSource instance to listen to SSE events
-  //   const eventSource = new EventSource('/api/events');
+  //   const ws = new WebSocket('ws://localhost:8681');
 
-  //   console.log( '===========EVENT SOURCE========' );
-
-  //   eventSource.onmessage = (event) => {
+  //   ws.onmessage = (event) => {
   //     try {
   //       const data = JSON.parse(event.data);
-  //       console.log('Received data from SSE:', data);
-  //       setPlaylist(data.playlist); // Update Zustand store with the latest playlist
+  //       console.log('Received data from WebSocket:', data);
+  //       //setPlaylist(data.playlist); // Update Zustand store with the playlist data from WebSocket
+  //       addToPlaylistStore(data.playlist); // Update Zustand store with the playlist data from WebSocket      
   //     } catch (error) {
-  //       console.error('Error parsing SSE data:', error);
+  //       console.error('Error parsing WebSocket data:', error);
   //       notification.error({
   //         message: 'Error',
-  //         description: 'Failed to parse data from the server.',
+  //         description: 'Failed to parse data from WebSocket.',
   //       });
   //     }
   //   };
 
-  //   eventSource.onerror = (error) => {
-  //     console.error('EventSource error:', error);
+  //   ws.onerror = (error) => {
+  //     console.error('WebSocket error:', error);
   //     notification.error({
   //       message: 'Connection Error',
   //       description: 'Failed to connect to the server for real-time updates.',
   //     });
   //   };
 
-  //   // Clean up on component unmount
+  //   ws.onclose = () => {
+  //     console.log('WebSocket connection closed');
+  //   };
+
   //   return () => {
-  //     eventSource.close();
+  //     ws.close();
   //   };
   // }, [setPlaylist]);
 
-  useEffect(() => {
-    const ws = new WebSocket('ws://localhost:8080');
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        console.log('Received data from WebSocket:', data);
-        // setPlaylist(data.playlist);
-      } catch (error) {
-        console.error('Error parsing WebSocket data:', error);
-      }
-    };
-
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      notification.error({
-        message: 'Connection Error',
-        description: 'Failed to connect to the server for real-time updates.',
-      });
-    };
-
-    ws.onclose = () => {
-      console.log('WebSocket connection closed');
-    };
-
-    // Clean up on component unmount
-    return () => {
-      ws.close();
-    };
-  }, [setPlaylist]);
 
 
 
@@ -103,50 +125,56 @@ const YouTubePlayer: React.FC = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const url = e.target.value;
-    setInputUrl(url);
-    const id = url.split('v=')[1]?.split('&')[0];
+    const validatedUrl = validateAndConvertYouTubeUrl(url) ?? '';
+    setInputUrl(validatedUrl);
+    const id = validatedUrl.split('v=')[1]?.split('&')[0];
     setVideoId(id || '');
     setIsPlayerReady(false); // Reset player readiness when a new video ID is set
   };
 
   const addToPlaylist = async () => {
-    if (!isValidYouTubeUrl(inputUrl)) {
+
+    console.log( '===========ADD TO PLAYLIST========' );
+    if (!validatedUrl) {
       notification.error({
         message: 'Invalid URL',
         description: 'Please enter a valid YouTube URL.',
       });
       return;
     }
+    
 
-    if (!playlist.includes(inputUrl)) {
-      addToPlaylistStore(inputUrl); // Add to Zustand store
+    if (!playlist.includes(validatedUrl)) {
+      sendMessage(JSON.stringify({ action: 'add', url: validatedUrl }));
+      addToPlaylistStore(validatedUrl); // Add to Zustand store
+      setInputUrl('');
     }
 
-    try {
-      const response = await fetch('/api/add-to-playlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: inputUrl }),
-      });
+    // try {
+    //   const response = await fetch('/api/add-to-playlist', {
+    //     method: 'POST',
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify({ url: inputUrl }),
+    //   });
 
-      const data = await response.json();
-      if (response.ok) {
-        notification.success({
-          message: 'Success',
-          description: data.message,
-        });
-      } else {
-        notification.error({
-          message: 'Error',
-          description: data.error,
-        });
-      }
-    } catch (error) {
-      notification.error({
-        message: 'Network Error',
-        description: 'There was an error communicating with the server.',
-      });
-    }
+    //   const data = await response.json();
+    //   if (response.ok) {
+    //     notification.success({
+    //       message: 'Success',
+    //       description: data.message,
+    //     });
+    //   } else {
+    //     notification.error({
+    //       message: 'Error',
+    //       description: data.error,
+    //     });
+    //   }
+    // } catch (error) {
+    //   notification.error({
+    //     message: 'Network Error',
+    //     description: 'There was an error communicating with the server.',
+    //   });
+    // }
   };
 
   const handlePlaylistItemClick = (url: string) => {
@@ -218,12 +246,17 @@ const YouTubePlayer: React.FC = () => {
           className='bg-gray-950 text-white'
           bordered={false}
           style={{ width: '100%', maxWidth: '800px' }}
-          extra={
-            <Button icon={<ReloadOutlined />} onClick={refreshPlaylist} style={{ color: 'white', border: 'none', background: 'transparent' }}>
-              Refresh
-            </Button>
-          }
+          // extra={
+          //   <Button icon={<ReloadOutlined />} onClick={refreshPlaylist} style={{ color: 'white', border: 'none', background: 'transparent' }}>
+          //     Refresh
+          //   </Button>
+          // }
         >
+          {/* <div>
+            <button onClick={() => sendMessage('Hello')}>Send Message</button>
+            <p>Last message: {lastMessage ? lastMessage.data : null}</p>
+          </div> */}
+
           <div className="mb-4 flex items-center">
             <Switch
               checked={autoPlay}
@@ -256,57 +289,56 @@ const YouTubePlayer: React.FC = () => {
           )}
 
           <Space style={{ display: 'flex', justifyContent: 'space-around' }}>
-            <Button type="primary" icon={<PlayCircleOutlined />} onClick={playVideo}>
+            <Button type="link" icon={<PlayCircleOutlined />} onClick={playVideo}>
               Play
             </Button>
-            <Button type="default" icon={<StopOutlined />} onClick={stopVideo}>
+            <Button type="link" icon={<StopOutlined />} onClick={stopVideo}>
               Stop
             </Button>
-            <Button type="default" icon={<BackwardOutlined />} onClick={rewindVideo}>
+            <Button type="link" icon={<BackwardOutlined />} onClick={rewindVideo}>
               Rewind 10s
             </Button>
-            <Button type="default" icon={<ForwardOutlined />} onClick={forwardVideo}>
+            <Button type="link" icon={<ForwardOutlined />} onClick={forwardVideo}>
               Forward 10s
             </Button>
           </Space>
-
-          {/* <List
-            header={<div style={{ color: 'white' }}>Playlist</div>}
-            bordered
-            dataSource={playlist} // Use Zustand playlist here
-            renderItem={(url) => (
-              <List.Item onClick={() => handlePlaylistItemClick(url)} style={{ cursor: 'pointer', color: 'white' }}>
-                {url}
-              </List.Item>
-            )}
-            style={{ marginTop: '20px', background: 'black' }}
-          /> */}
 
           <List
             header={
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'white' }}>
                 <span>Playlist</span>
                 <Button
-                  icon={<ReloadOutlined />}
-                  onClick={refreshPlaylist} // Connect to your refresh function
+                  icon={<MinusCircleOutlined  /> }
+                  onClick={clearPlaylist} // Function to clear the playlist
                   style={{ color: 'white', border: 'none', background: 'transparent' }}
                 >
-                  Refresh
+                  Clear
                 </Button>
               </div>
             }
             bordered
             dataSource={playlist} // Use Zustand playlist here
             renderItem={(url) => (
-              <List.Item onClick={() => handlePlaylistItemClick(url)} style={{ cursor: 'pointer', color: 'white' }}>
+              <List.Item
+                onClick={() => handlePlaylistItemClick(url)} 
+                style={{ cursor: 'pointer', color: 'white', display: 'flex', justifyContent: 'space-between' }}
+              >
+                <Button type="link" icon={<PlayCircleOutlined />} onClick={playVideo}>
+                  Play  
+                </Button>
                 {url}
+                <Button
+                  icon={<DeleteOutlined />}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent the parent click event
+                    removeFromPlaylist(url); // Function to remove item from playlist
+                  }}
+                  style={{ color: 'white', border: 'none', background: 'transparent' }}
+                />
               </List.Item>
             )}
             style={{ marginTop: '20px', background: 'black' }}
           />
-
-
-
         </Card>
       </Content>
     </Layout>
