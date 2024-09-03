@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import YouTube from 'react-youtube';
 import { Layout, Card, Input, Button, Space, Switch, List, notification } from 'antd';
-import { PlayCircleOutlined, StopOutlined, BackwardOutlined, ForwardOutlined, ReloadOutlined } from '@ant-design/icons';
-import { isValidYouTubeUrl } from '../utils';
+import { PlayCircleOutlined, StopOutlined, BackwardOutlined, ForwardOutlined, ReloadOutlined, MinusCircleOutlined, DeleteOutlined } from '@ant-design/icons';
+import { isValidYouTubeUrl, validateAndConvertYouTubeUrl } from '../utils';
 import usePlaylistStore from '../store/playlistStore'; // Import Zustand store
 import useWebSocket from 'react-use-websocket';
 
@@ -28,7 +28,20 @@ const YouTubePlayer: React.FC = () => {
   const { sendMessage, lastMessage, readyState } = useWebSocket(socketUrl, {
     shouldReconnect: (closeEvent) => true, // Reconnect on errors
   });
+  const validatedUrl = validateAndConvertYouTubeUrl(inputUrl);
 
+  // Function to clear the playlist
+  const clearPlaylist = () => {
+    setPlaylist([]);
+    sendMessage(JSON.stringify({ action: 'clear' })); // Notify WebSocket server to clear playlist
+  };
+
+  // Function to remove a specific item from the playlist
+  const removeFromPlaylist = (url: string) => {
+    const updatedPlaylist = playlist.filter(item => item !== url);
+    setPlaylist(updatedPlaylist);
+    sendMessage(JSON.stringify({ action: 'remove', url })); // Notify WebSocket server to remove item
+  };
 
 
   // Handle incoming messages
@@ -37,7 +50,10 @@ const YouTubePlayer: React.FC = () => {
       try {
         const data = JSON.parse(lastMessage.data);
         console.log('Received data from WebSocket:', data);
-        addToPlaylistStore(data.playlist); // Add to Zustand store
+        if (data.playlist) {
+          setPlaylist(data.playlist);
+        }
+        // addToPlaylistStore(data.playlist); // Add to Zustand store
         // addToPlaylistStore(data.playlist); 
         // setPlaylist(data.playlist); 
       } catch (error) {
@@ -109,23 +125,28 @@ const YouTubePlayer: React.FC = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const url = e.target.value;
-    setInputUrl(url);
-    const id = url.split('v=')[1]?.split('&')[0];
+    const validatedUrl = validateAndConvertYouTubeUrl(url) ?? '';
+    setInputUrl(validatedUrl);
+    const id = validatedUrl.split('v=')[1]?.split('&')[0];
     setVideoId(id || '');
     setIsPlayerReady(false); // Reset player readiness when a new video ID is set
   };
 
   const addToPlaylist = async () => {
-    if (!isValidYouTubeUrl(inputUrl)) {
+
+    console.log( '===========ADD TO PLAYLIST========' );
+    if (!validatedUrl) {
       notification.error({
         message: 'Invalid URL',
         description: 'Please enter a valid YouTube URL.',
       });
       return;
     }
+    
 
-    if (!playlist.includes(inputUrl)) {
-      addToPlaylistStore(inputUrl); // Add to Zustand store
+    if (!playlist.includes(validatedUrl)) {
+      sendMessage(JSON.stringify({ action: 'add', url: validatedUrl }));
+      addToPlaylistStore(validatedUrl); // Add to Zustand store
       setInputUrl('');
     }
 
@@ -231,15 +252,10 @@ const YouTubePlayer: React.FC = () => {
           //   </Button>
           // }
         >
-
-
           {/* <div>
             <button onClick={() => sendMessage('Hello')}>Send Message</button>
             <p>Last message: {lastMessage ? lastMessage.data : null}</p>
           </div> */}
-
-
-
 
           <div className="mb-4 flex items-center">
             <Switch
@@ -288,46 +304,40 @@ const YouTubePlayer: React.FC = () => {
           </Space>
 
           <List
-            header={<div style={{ color: 'white' }}>Playlist</div>}
-            bordered
-            dataSource={playlist} // Use Zustand playlist here
-            renderItem={(url) => (
-              <List.Item onClick={() => handlePlaylistItemClick(url)} style={{ cursor: 'pointer', color: 'white' }}>
-                <Button type="link" icon={<PlayCircleOutlined />} onClick={playVideo}>
-                  Play  
-                </Button>
-                {url}
-              </List.Item>
-            )}
-            style={{ marginTop: '20px', background: 'black' }}
-          />
-
-          {/* <List
             header={
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'white' }}>
                 <span>Playlist</span>
                 <Button
-                  icon={<ReloadOutlined />}
-                  onClick={refreshPlaylist} // Connect to your refresh function
+                  icon={<MinusCircleOutlined  /> }
+                  onClick={clearPlaylist} // Function to clear the playlist
                   style={{ color: 'white', border: 'none', background: 'transparent' }}
                 >
-                  Refresh
+                  Clear
                 </Button>
               </div>
             }
             bordered
             dataSource={playlist} // Use Zustand playlist here
             renderItem={(url) => (
-              <List.Item onClick={() => handlePlaylistItemClick(url)} style={{ cursor: 'pointer', color: 'white' }}>
+              <List.Item
+                style={{ cursor: 'pointer', color: 'white', display: 'flex', justifyContent: 'space-between' }}
+              >
+                <Button type="link" icon={<PlayCircleOutlined />} onClick={playVideo}>
+                  Play  
+                </Button>
                 {url}
+                <Button
+                  icon={<DeleteOutlined />}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent the parent click event
+                    removeFromPlaylist(url); // Function to remove item from playlist
+                  }}
+                  style={{ color: 'white', border: 'none', background: 'transparent' }}
+                />
               </List.Item>
             )}
             style={{ marginTop: '20px', background: 'black' }}
-          /> */}
-
-
-
-
+          />
         </Card>
       </Content>
     </Layout>
