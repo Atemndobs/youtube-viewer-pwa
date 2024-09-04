@@ -6,6 +6,7 @@ import {create} from 'zustand';
 interface PlaylistStore {
   playlist: string[];
   addToPlaylist: (url: string) => void;
+  setPlaylist: (urls: string[]) => void; // 
 }
 
 const usePlaylistStore = create<PlaylistStore>((set) => ({
@@ -13,6 +14,11 @@ const usePlaylistStore = create<PlaylistStore>((set) => ({
   addToPlaylist: (url) => set((state) => ({
     playlist: [...state.playlist, url]
   })),
+  // setPlaylist: (urls) => set(() => ({
+  //   playlist: urls,
+  // })), // Add this function
+
+  setPlaylist: (playlist) => set({ playlist }),
 }));
 
 export default usePlaylistStore;

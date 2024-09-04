@@ -1,11 +1,10 @@
-"use client";
-
 import React, { useState, useEffect } from 'react';
 import YouTube from 'react-youtube';
 import { Layout, Card, Input, Button, Space, Switch, List, notification } from 'antd';
-import { PlayCircleOutlined, StopOutlined, BackwardOutlined, ForwardOutlined, ReloadOutlined } from '@ant-design/icons';
-import { isValidYouTubeUrl } from '../utils';
+import { PlayCircleOutlined, StopOutlined, BackwardOutlined, ForwardOutlined, MinusCircleOutlined, DeleteOutlined } from '@ant-design/icons';
+import { isValidYouTubeUrl, validateAndConvertYouTubeUrl } from '../utils';
 import usePlaylistStore from '../store/playlistStore'; // Import Zustand store
+import useWebSocket from 'react-use-websocket';
 
 const { Content } = Layout;
 
@@ -21,52 +20,116 @@ const YouTubePlayer: React.FC = () => {
   const addToPlaylistStore = usePlaylistStore((state) => state.addToPlaylist);
   const setPlaylist = usePlaylistStore((state) => state.setPlaylist);
 
+  // WebSocket URL
+  const socketUrl = 'ws://localhost:8681'; // Replace with your WebSocket server URL
+  const { sendMessage, lastMessage, readyState } = useWebSocket(socketUrl, {
+    shouldReconnect: () => true, // Reconnect on errors
+  });
+  const validatedUrl = validateAndConvertYouTubeUrl(inputUrl);
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
+
+
+  // Handle incoming WebSocket messages
   useEffect(() => {
-    // Connect to SSE endpoint
-    const eventSource = new EventSource('/api/events');
+    if (lastMessage !== null) {
+      console.info('Received Last message from WebSocket:');
+      console.info({ lastMessage });
 
-    eventSource.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      console.log({ 'eventSource.onmessage received data': data });
-      setPlaylist(data.playlist); // Update Zustand store with the latest playlist
-    };
+      
+      
+      try {
+        const data = JSON.parse(lastMessage.data);
+        console.log('Received PLAYLIST from WebSocket:', data);
 
-    eventSource.onerror = (error) => {
-      console.error('EventSource error:', error);
-      notification.error({
-        message: 'Connection Error',
-        description: 'Failed to connect to the server for real-time updates.',
-      });
-    };
-
-    // Clean up on component unmount
-    return () => {
-      eventSource.close();
-    };
-  }, [setPlaylist]);
-
-  useEffect(() => {
-    // Delay playback by 1 second if autoplay is enabled
-    const timer = setTimeout(() => {
-      if (isPlayerReady && player && videoId && autoPlay) {
-        player.playVideo();
+        if (data.playlist) {
+          setPlaylist(data.playlist); // Update Zustand store with the playlist data from WebSocket
+          const playlistCount = data.playlist.length;
+          notification.success({
+            message: 'Playlist Added',
+            description: playlistCount + ' videos from the playlist have been added.',
+    
+          });
+        }
+      } catch (error) {
+        console.error('Error parsing WebSocket data:', error);
+        // notification.error({
+        //   message: 'Error',
+        //   description: 'Failed to parse data from the WebSocket.',
+        // });
       }
-    }, 1000);
+    }
+  }, [lastMessage, setPlaylist]);
 
-    // Clean up the timer if videoId changes before the timer completes
-    return () => clearTimeout(timer);
-  }, [videoId, isPlayerReady, player, autoPlay]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const url = e.target.value;
-    setInputUrl(url);
-    const id = url.split('v=')[1]?.split('&')[0];
-    setVideoId(id || '');
-    setIsPlayerReady(false); // Reset player readiness when a new video ID is set
+  const getWebSocketStatus = () => {
+    switch (readyState) {
+      case WebSocket.CONNECTING:
+        return 'Connecting...';
+      case WebSocket.OPEN:
+        return 'Connected';
+      case WebSocket.CLOSING:
+        return 'Closing...';
+      case WebSocket.CLOSED:
+        return 'Disconnected';
+      default:
+        return 'Unknown status';
+    }
   };
 
+
+  // Function to fetch video URLs from a playlist
+  const fetchPlaylistVideos = async (playlistUrl: string) => {
+    try {
+      const listId = playlistUrl.split('list=')[1];
+      const response = await fetch(`/api/playlist-videos?listId=${listId}`); // Assume you have an API endpoint that returns the videos
+      const data = await response.json();
+
+      if (data.success && data.videoUrls.length) {
+        data.videoUrls.forEach((url: string) => {
+          if (!playlist.includes(url)) {
+            sendMessage(JSON.stringify({ action: 'add', url }));
+            addToPlaylistStore(url);
+          }
+        });
+        notification.success({
+          message: 'Playlist Added',
+          description: 'All videos from the playlist have been added.',
+        });
+      } else {
+        notification.error({
+          message: 'Error',
+          description: 'Failed to retrieve videos from the playlist.',
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching playlist videos:', error);
+      notification.error({
+        message: 'Error',
+        description: 'There was an error fetching the playlist videos.',
+      });
+    }
+  };
+
+  // Handle input change
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const url = e.target.value;
+    setInputUrl(url.trim());
+
+    if (isValidYouTubeUrl(url)) {
+      const id = url.includes('list=') ? '' : url.split('v=')[1]?.split('&')[0];
+      setVideoId(id || '');
+      setIsPlayerReady(false);
+    } else {
+      notification.error({
+        message: 'Invalid URL',
+        description: 'Please enter a valid YouTube URL.',
+      });
+    }
+  };
+
+  // Add video or playlist to the playlist
   const addToPlaylist = async () => {
-    if (!isValidYouTubeUrl(inputUrl)) {
+    if (!validatedUrl) {
       notification.error({
         message: 'Invalid URL',
         description: 'Please enter a valid YouTube URL.',
@@ -74,37 +137,18 @@ const YouTubePlayer: React.FC = () => {
       return;
     }
 
-    if (!playlist.includes(inputUrl)) {
-      addToPlaylistStore(inputUrl); // Add to Zustand store
-    }
-
-    try {
-      const response = await fetch('/api/add-to-playlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: inputUrl }),
-      });
-
-      const data = await response.json();
-      if (response.ok) {
-        notification.success({
-          message: 'Success',
-          description: data.message,
-        });
-      } else {
-        notification.error({
-          message: 'Error',
-          description: data.error,
-        });
+    if (validatedUrl.includes('list=')) {
+      await fetchPlaylistVideos(validatedUrl);
+    } else {
+      if (!playlist.includes(validatedUrl)) {
+        sendMessage(JSON.stringify({ action: 'add', url: validatedUrl }));
+        addToPlaylistStore(validatedUrl); // Add to Zustand store
+        setInputUrl('');
       }
-    } catch (error) {
-      notification.error({
-        message: 'Network Error',
-        description: 'There was an error communicating with the server.',
-      });
     }
   };
 
+  // Function to handle playlist item click
   const handlePlaylistItemClick = (url: string) => {
     const id = url.split('v=')[1]?.split('&')[0];
     setVideoId(id || '');
@@ -120,55 +164,54 @@ const YouTubePlayer: React.FC = () => {
     setIsPlayerReady(true);
   };
 
-  const playVideo = () => {
-    player?.playVideo();
+  // Functions to control video playback
+  const playVideo = () => player?.playVideo();
+  const stopVideo = () => player?.stopVideo();
+  const rewindVideo = () => player?.seekTo((player?.getCurrentTime() || 0) - 10, true);
+  const forwardVideo = () => player?.seekTo((player?.getCurrentTime() || 0) + 10, true);
+
+  // Function to clear the playlist
+  const clearPlaylist = () => {
+    setPlaylist([]);
+    sendMessage(JSON.stringify({ action: 'clear' }));
   };
 
-  const stopVideo = () => {
-    player?.stopVideo();
-  };
-
-  const rewindVideo = () => {
-    const currentTime = player?.getCurrentTime() || 0;
-    player?.seekTo(currentTime - 10, true);
-  };
-
-  const forwardVideo = () => {
-    const currentTime = player?.getCurrentTime() || 0;
-    player?.seekTo(currentTime + 10, true);
-  };
-
-  const refreshPlaylist = async () => {
-    try {
-      const response = await fetch('/api/events');
-      const data = await response.json();
-      setPlaylist(data.playlist); // Update Zustand store with the refreshed playlist
-      notification.success({
-        message: 'Playlist Refreshed',
-        description: 'The playlist has been successfully refreshed.',
-      });
-    } catch (error) {
-      notification.error({
-        message: 'Refresh Error',
-        description: 'There was an error refreshing the playlist.',
-      });
-    }
+  // Function to remove a specific item from the playlist
+  const removeFromPlaylist = (url: string) => {
+    const updatedPlaylist = playlist.filter(item => item !== url);
+    setPlaylist(updatedPlaylist);
+    sendMessage(JSON.stringify({ action: 'remove', url }));
   };
 
   return (
     <Layout>
-      <Content style={{ padding: '50px', display: 'flex', justifyContent: 'center', background: 'black'}}>
+  <Content style={{ padding: '50px', display: 'flex', justifyContent: 'center', background: isDarkMode ? 'black' : 'white' }}>
         <Card
           title="YouTube Video Viewer"
-          className='bg-gray-950 text-white'
           bordered={false}
-          style={{ width: '100%', maxWidth: '800px' }}
+          style={{ width: '100%', maxWidth: '800px', background: isDarkMode ? 'black' : '#ffffff' }}
           extra={
-            <Button icon={<ReloadOutlined />} onClick={refreshPlaylist} style={{ color: 'white', border: 'none', background: 'transparent' }}>
-              Refresh
-            </Button>
+            <div className="mb-4 flex items-center">
+              <Switch
+                checked={isDarkMode}
+                onChange={() => setIsDarkMode(prev => !prev)}
+                className="mr-2"
+              />
+              <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
+                Dark Mode
+              </span>
+            </div>
           }
         >
+
+
+
+          <div style={{ color: 'white', marginBottom: '20px' }}>
+            WebSocket Status: {getWebSocketStatus()}
+          </div>
+
+
+
           <div className="mb-4 flex items-center">
             <Switch
               checked={autoPlay}
@@ -179,7 +222,7 @@ const YouTubePlayer: React.FC = () => {
           </div>
 
           <Input
-            placeholder="Enter YouTube video URL"
+            placeholder="Enter YouTube video or playlist URL"
             value={inputUrl}
             onChange={handleInputChange}
             onFocus={(e) => e.target.select()}
@@ -201,27 +244,52 @@ const YouTubePlayer: React.FC = () => {
           )}
 
           <Space style={{ display: 'flex', justifyContent: 'space-around' }}>
-            <Button type="primary" icon={<PlayCircleOutlined />} onClick={playVideo}>
+            <Button type="link" icon={<PlayCircleOutlined />} onClick={playVideo}>
               Play
             </Button>
-            <Button type="default" icon={<StopOutlined />} onClick={stopVideo}>
+            <Button type="link" icon={<StopOutlined />} onClick={stopVideo}>
               Stop
             </Button>
-            <Button type="default" icon={<BackwardOutlined />} onClick={rewindVideo}>
+            <Button type="link" icon={<BackwardOutlined />} onClick={rewindVideo}>
               Rewind 10s
             </Button>
-            <Button type="default" icon={<ForwardOutlined />} onClick={forwardVideo}>
+            <Button type="link" icon={<ForwardOutlined />} onClick={forwardVideo}>
               Forward 10s
             </Button>
           </Space>
 
           <List
-            header={<div style={{ color: 'white' }}>Playlist</div>}
+            header={
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'white' }}>
+                <span>Playlist</span>
+                <Button
+                  icon={<MinusCircleOutlined />}
+                  onClick={clearPlaylist}
+                  style={{ color: 'white', border: 'none', background: 'transparent' }}
+                >
+                  Clear
+                </Button>
+              </div>
+            }
             bordered
             dataSource={playlist} // Use Zustand playlist here
             renderItem={(url) => (
-              <List.Item onClick={() => handlePlaylistItemClick(url)} style={{ cursor: 'pointer', color: 'white' }}>
+              <List.Item
+                onClick={() => handlePlaylistItemClick(url)} 
+                style={{ cursor: 'pointer', color: 'grey', display: 'flex', justifyContent: 'space-between' }}
+              >
+                <Button type="link" icon={<PlayCircleOutlined />} onClick={playVideo}>
+                  Play  
+                </Button>
                 {url}
+                <Button
+                  icon={<DeleteOutlined />}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent the parent click event
+                    removeFromPlaylist(url); // Function to remove item from playlist
+                  }}
+                  style={{ color: 'white', border: 'none', background: 'transparent' }}
+                />
               </List.Item>
             )}
             style={{ marginTop: '20px', background: 'black' }}

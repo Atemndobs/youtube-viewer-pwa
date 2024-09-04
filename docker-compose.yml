@@ -1,14 +1,15 @@
 services:
   web:
     # build: .
-    image: atemndobs/viewer-pwa:v0.1
+    image: atemndobs/viewer-pwa:v0.3
     container_name: viewer-pwa
     ports:
       - "3400:3000"
-    volumes:
-      - .:/app
+    # volumes:
+      # - .:/app
     environment:
       - NODE_ENV=production
+      - YOUTUBE_API_KEY=AIzaSyC0kQQzDSk_gEpjmcHfHlTdwmnQ8kKGQIo
 
 
 
