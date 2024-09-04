@@ -23,10 +23,58 @@ const YouTubePlayer: React.FC = () => {
   // WebSocket URL
   const socketUrl = 'ws://localhost:8681'; // Replace with your WebSocket server URL
   const { sendMessage, lastMessage, readyState } = useWebSocket(socketUrl, {
-    shouldReconnect: (closeEvent) => true, // Reconnect on errors
+    shouldReconnect: () => true, // Reconnect on errors
   });
   const validatedUrl = validateAndConvertYouTubeUrl(inputUrl);
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
+
+
+  // Handle incoming WebSocket messages
+  useEffect(() => {
+    if (lastMessage !== null) {
+      console.info('Received Last message from WebSocket:');
+      console.info({ lastMessage });
+
+      
+      
+      try {
+        const data = JSON.parse(lastMessage.data);
+        console.log('Received PLAYLIST from WebSocket:', data);
+
+        if (data.playlist) {
+          setPlaylist(data.playlist); // Update Zustand store with the playlist data from WebSocket
+          const playlistCount = data.playlist.length;
+          notification.success({
+            message: 'Playlist Added',
+            description: playlistCount + ' videos from the playlist have been added.',
+    
+          });
+        }
+      } catch (error) {
+        console.error('Error parsing WebSocket data:', error);
+        // notification.error({
+        //   message: 'Error',
+        //   description: 'Failed to parse data from the WebSocket.',
+        // });
+      }
+    }
+  }, [lastMessage, setPlaylist]);
+
+
+  const getWebSocketStatus = () => {
+    switch (readyState) {
+      case WebSocket.CONNECTING:
+        return 'Connecting...';
+      case WebSocket.OPEN:
+        return 'Connected';
+      case WebSocket.CLOSING:
+        return 'Closing...';
+      case WebSocket.CLOSED:
+        return 'Disconnected';
+      default:
+        return 'Unknown status';
+    }
+  };
 
 
   // Function to fetch video URLs from a playlist
@@ -155,6 +203,15 @@ const YouTubePlayer: React.FC = () => {
             </div>
           }
         >
+
+
+
+          <div style={{ color: 'white', marginBottom: '20px' }}>
+            WebSocket Status: {getWebSocketStatus()}
+          </div>
+
+
+
           <div className="mb-4 flex items-center">
             <Switch
               checked={autoPlay}

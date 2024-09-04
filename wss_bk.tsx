@@ -17,44 +17,30 @@ server.on('connection', (ws) => {
   // Handle incoming messages from clients
   ws.on('message', (message) => {
     console.log(`Received message => ${message}`);
+    console.log(`Type of message => ${typeof message}`);
     console.log(JSON.parse(message));
+ 
     
-    
+
     try {
       // Parse the incoming message (assuming it's in JSON format)
       const data = JSON.parse(message);
 
-      // Handle different actions based on the message
-      switch (data.action) {
-        case 'add':
-          if (data.url) {
-            playlist.push(data.url);
-            broadcastPlaylist(); // Broadcast the updated playlist
-          }
-          break;
-        case 'clear':
-          playlist = []; // Clear the playlist
-          broadcastPlaylist(); // Broadcast the updated (empty) playlist
-          break;
-        case 'remove':
-          if (data.url) {
-            playlist = playlist.filter(item => item !== data.url);
-            broadcastPlaylist(); // Broadcast the updated playlist
-          }
-          break;
-        default:
-          console.error('Unknown action:', data.action);
+      // Handle the action, e.g., add URL to playlist
+      if (data.action === 'add' && data.url) {
+        playlist.push(data.url);
+        broadcastPlaylist(data); // Broadcast the updated playlist
       }
     } catch (error) {
       console.error('Error processing message:', error);
     }
 
     // Broadcast the message to all connected clients
-    // clients.forEach(client => {
-    //   if (client !== ws && client.readyState === WebSocket.OPEN) {
-    //     client.send(message);
-    //   }
-    // });
+    clients.forEach(client => {
+      if (client !== ws && client.readyState === WebSocket.OPEN) {
+        client.send(message);
+      }
+    });
   });
 
   // Handle client disconnection
