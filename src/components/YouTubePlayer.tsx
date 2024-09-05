@@ -20,6 +20,10 @@ const YouTubePlayer: React.FC = () => {
   const playlist = usePlaylistStore((state) => state.playlist);
   const addToPlaylistStore = usePlaylistStore((state) => state.addToPlaylist);
   const setPlaylist = usePlaylistStore((state) => state.setPlaylist);
+  const removeFromPlaylistStore = usePlaylistStore((state) => state.removePlaylist);
+  const clearFromPlaylistStore = usePlaylistStore((state) => state.clearPlaylist);
+  
+
 
   // WebSocket URL
 const socketUrl = process.env.WEBSOCKET_URL || 'wss://viewer.atemkeng.de/ws'
@@ -36,18 +40,28 @@ const socketUrl = process.env.WEBSOCKET_URL || 'wss://viewer.atemkeng.de/ws'
       console.info('Received Last message from WebSocket:');
       console.info({ lastMessage });
 
-      
-      
       try {
         const data = JSON.parse(lastMessage.data);
         console.log('Received PLAYLIST from WebSocket:', data);
+        // Count current playlist items
+        const currentPlaylistCount = playlist.length;
 
         if (data.playlist) {
           setPlaylist(data.playlist); // Update Zustand store with the playlist data from WebSocket
           const playlistCount = data.playlist.length;
+          // show success notification  if playlist is not empty
+          if (playlistCount) {
+            notification.success({
+              message: 'Playlist Added',
+              description: playlistCount + ' videos from the playlist have been added.',
+      
+            })
+          }
+        }else{
+          console.log('No playlist data received from WebSocket');
           notification.success({
-            message: 'Playlist Added',
-            description: playlistCount + ' videos from the playlist have been added.',
+            message: 'Playlist Items',
+            description: currentPlaylistCount + ' in Playlist',
     
           });
         }
@@ -154,19 +168,56 @@ const socketUrl = process.env.WEBSOCKET_URL || 'wss://viewer.atemkeng.de/ws'
   const stopVideo = () => player?.stopVideo();
   const rewindVideo = () => player?.seekTo((player?.getCurrentTime() || 0) - 10, true);
   const forwardVideo = () => player?.seekTo((player?.getCurrentTime() || 0) + 10, true);
-
   // Function to clear the playlist
   const clearPlaylist = () => {
     setPlaylist([]);
     sendMessage(JSON.stringify({ action: 'clear' }));
+    clearFromPlaylistStore();
   };
 
   // Function to remove a specific item from the playlist
+  // const removeFromPlaylist = (url: string) => {
+  //   const updatedPlaylist = playlist.filter(item => item !== url);
+  //   setPlaylist(updatedPlaylist);
+  //   sendMessage(JSON.stringify({ action: 'remove', url }));
+  //   console.log('Before Removing from playlist ----------:', url);
+  //   console.log({ playlist });
+    
+  //   // Remove from Zustand store
+  //   removeFromPlaylistStore(url);
+  //   console.log('After Removing from playlist ----------:');
+  //   console.log({ playlist });
+  // };
+
+
   const removeFromPlaylist = (url: string) => {
-    const updatedPlaylist = playlist.filter(item => item !== url);
-    setPlaylist(updatedPlaylist);
+    const playlist = usePlaylistStore.getState().playlist;  // Get Zustand's playlist state
+    
+    // Log before removing from playlist
+    console.log('Before Removing from playlist ----------:', url);
+    console.log('Current playlist:', playlist);
+  
+    // Remove URL from Zustand store
+    usePlaylistStore.getState().removePlaylist(url);  // This will automatically trigger a state update in Zustand
+  
+    // Check updated Zustand playlist
+    const updatedPlaylist = usePlaylistStore.getState().playlist;
+    console.log('Updated Zustand playlist ----------:', updatedPlaylist);
+  
+    // Send WebSocket message to notify about the removal
     sendMessage(JSON.stringify({ action: 'remove', url }));
+  
+    // Log final playlist after all actions
+    console.log('After Removing from playlist ----------:');
+
+    console.log('Current playlist:', playlist);
+    console.log({ playlist });
+    
+    
   };
+  
+  
+
 
   return (
     <Layout>
