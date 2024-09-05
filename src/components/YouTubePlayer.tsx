@@ -5,6 +5,7 @@ import { PlayCircleOutlined, StopOutlined, BackwardOutlined, ForwardOutlined, Mi
 import { isValidYouTubeUrl, validateAndConvertYouTubeUrl } from '../utils';
 import usePlaylistStore from '../store/playlistStore'; // Import Zustand store
 import useWebSocket from 'react-use-websocket';
+import WebSocketStatus from './WebSocketStatus';
 
 const { Content } = Layout;
 
@@ -21,7 +22,7 @@ const YouTubePlayer: React.FC = () => {
   const setPlaylist = usePlaylistStore((state) => state.setPlaylist);
 
   // WebSocket URL
-  const socketUrl = 'ws://localhost:8681'; // Replace with your WebSocket server URL
+const socketUrl = process.env.WEBSOCKET_URL || 'wss://viewer.atemkeng.de/ws'
   const { sendMessage, lastMessage, readyState } = useWebSocket(socketUrl, {
     shouldReconnect: () => true, // Reconnect on errors
   });
@@ -59,22 +60,6 @@ const YouTubePlayer: React.FC = () => {
       }
     }
   }, [lastMessage, setPlaylist]);
-
-
-  const getWebSocketStatus = () => {
-    switch (readyState) {
-      case WebSocket.CONNECTING:
-        return 'Connecting...';
-      case WebSocket.OPEN:
-        return 'Connected';
-      case WebSocket.CLOSING:
-        return 'Closing...';
-      case WebSocket.CLOSED:
-        return 'Disconnected';
-      default:
-        return 'Unknown status';
-    }
-  };
 
 
   // Function to fetch video URLs from a playlist
@@ -204,13 +189,7 @@ const YouTubePlayer: React.FC = () => {
           }
         >
 
-
-
-          <div style={{ color: 'white', marginBottom: '20px' }}>
-            WebSocket Status: {getWebSocketStatus()}
-          </div>
-
-
+        <WebSocketStatus />
 
           <div className="mb-4 flex items-center">
             <Switch

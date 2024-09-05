@@ -90,5 +90,8 @@ module.exports = {
     broadcastPlaylist();
   }
 };
+const socketUrl = process.env.WEBSOCKET_URL || 'wss://viewer.atemkeng.de/ws'
 
-console.log('WebSocket server running on ws://localhost:8681');
+console.log('WebSocket server running on:', socketUrl);
+
+

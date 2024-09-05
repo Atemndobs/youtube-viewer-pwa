@@ -29,7 +29,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     console.log('Updated playlist:', updatedPlaylist);
 
     // WebSocket Communication
-    const socketUrl = 'ws://localhost:8681'; // Replace with your WebSocket server URL
+    const socketUrl = process.env.WEBSOCKET_URL || 'wss://viewer.atemkeng.de/ws'
     const ws = new WebSocket(socketUrl);
 
     ws.on('open', () => {
