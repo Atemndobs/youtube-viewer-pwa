@@ -9,17 +9,33 @@ import WebSocket from 'ws';
 const dbPath = './db/playlist.db';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+
+// Helper function to initialize the database and ensure the playlist table exists
+const initializeDatabase = async () => {
   // Open database connection
   const db = await open({
     filename: dbPath,
     driver: sqlite3.Database
-  });
+  }); 
+  // Create the playlist table if it doesn't exist
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS playlist (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      url TEXT NOT NULL
+    )
+  `);
+
+  return db;
+};
+
+
+const db = await initializeDatabase();
 
   if (req.method === 'GET') {
+   
     try {
       // Fetch all playlist items from the database
       const rows = await db.all('SELECT * FROM playlist');
-      
       // Return the playlist as JSON
       res.status(200).json({ playlist: rows.map(row => row.url) });
     } catch (err) {
@@ -85,6 +101,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // Default action is to add the URL
       if (url) {
+
         if (!isValidYouTubeUrl(url)) {
           return res.status(400).json({ error: 'Invalid YouTube URL' });
         }
