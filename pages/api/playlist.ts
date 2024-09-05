@@ -6,7 +6,7 @@ import usePlaylistStore from '../../src/store/playlistStore';
 import WebSocket from 'ws';
 
 // Define the path to your database
-const dbPath = './db/playlist.db';
+const dbPath = './playlist.db';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
 
