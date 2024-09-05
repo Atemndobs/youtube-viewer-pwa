@@ -3,7 +3,6 @@ import YouTube from 'react-youtube';
 import { Layout, Card, Input, Button, Space, Switch, List, notification } from 'antd';
 import { PlayCircleOutlined, StopOutlined, BackwardOutlined, ForwardOutlined, MinusCircleOutlined, DeleteOutlined } from '@ant-design/icons';
 import { isValidYouTubeUrl, validateAndConvertYouTubeUrl } from '../utils';
-import usePlaylistStore from '../store/playlistStore'; // Import Zustand store
 import useWebSocket from 'react-use-websocket';
 import WebSocketStatus from './WebSocketStatus';
 
@@ -15,24 +14,13 @@ const YouTubePlayer: React.FC = () => {
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [autoPlay, setAutoPlay] = useState(false);
   const [inputUrl, setInputUrl] = useState('');
-
-  // Access Zustand store
-  const playlist = usePlaylistStore((state) => state.playlist);
-  const addToPlaylistStore = usePlaylistStore((state) => state.addToPlaylist);
-  const setPlaylist = usePlaylistStore((state) => state.setPlaylist);
-  const removeFromPlaylistStore = usePlaylistStore((state) => state.removePlaylist);
-  const clearFromPlaylistStore = usePlaylistStore((state) => state.clearPlaylist);
-  
-
-
-  // WebSocket URL
-const socketUrl = process.env.WEBSOCKET_URL || 'wss://viewer.atemkeng.de/ws'
+  const [playlist, setPlaylist] = useState<string[]>([]); // Use React state for playlist management
+  const socketUrl = process.env.WEBSOCKET_URL || 'wss://viewer.atemkeng.de/ws';
   const { sendMessage, lastMessage, readyState } = useWebSocket(socketUrl, {
     shouldReconnect: () => true, // Reconnect on errors
   });
   const validatedUrl = validateAndConvertYouTubeUrl(inputUrl);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
-
 
   // Handle incoming WebSocket messages
   useEffect(() => {
@@ -54,15 +42,15 @@ const socketUrl = process.env.WEBSOCKET_URL || 'wss://viewer.atemkeng.de/ws'
             notification.success({
               message: 'Playlist Added',
               description: playlistCount + ' videos from the playlist have been added.',
-      
+
             })
           }
-        }else{
+        } else {
           console.log('No playlist data received from WebSocket');
           notification.success({
             message: 'Playlist Items',
             description: currentPlaylistCount + ' in Playlist',
-    
+
           });
         }
       } catch (error) {
@@ -74,41 +62,6 @@ const socketUrl = process.env.WEBSOCKET_URL || 'wss://viewer.atemkeng.de/ws'
       }
     }
   }, [lastMessage, setPlaylist]);
-
-
-  // Function to fetch video URLs from a playlist
-  const fetchPlaylistVideos = async (playlistUrl: string) => {
-    try {
-      const listId = playlistUrl.split('list=')[1];
-      const response = await fetch(`/api/playlist-videos?listId=${listId}`); // Assume you have an API endpoint that returns the videos
-      const data = await response.json();
-
-      if (data.success && data.videoUrls.length) {
-        data.videoUrls.forEach((url: string) => {
-          if (!playlist.includes(url)) {
-            sendMessage(JSON.stringify({ action: 'add', url }));
-            addToPlaylistStore(url);
-          }
-        });
-        notification.success({
-          message: 'Playlist Added',
-          description: 'All videos from the playlist have been added.',
-        });
-      } else {
-        notification.error({
-          message: 'Error',
-          description: 'Failed to retrieve videos from the playlist.',
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching playlist videos:', error);
-      notification.error({
-        message: 'Error',
-        description: 'There was an error fetching the playlist videos.',
-      });
-    }
-  };
-
   // Handle input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const url = e.target.value;
@@ -126,26 +79,17 @@ const socketUrl = process.env.WEBSOCKET_URL || 'wss://viewer.atemkeng.de/ws'
     }
   };
 
-  // Add video or playlist to the playlist
-  const addToPlaylist = async () => {
-    if (!validatedUrl) {
-      notification.error({
-        message: 'Invalid URL',
-        description: 'Please enter a valid YouTube URL.',
-      });
-      return;
-    }
-
-    if (validatedUrl.includes('list=')) {
-      await fetchPlaylistVideos(validatedUrl);
-    } else {
-      if (!playlist.includes(validatedUrl)) {
-        sendMessage(JSON.stringify({ action: 'add', url: validatedUrl }));
-        addToPlaylistStore(validatedUrl); // Add to Zustand store
-        setInputUrl('');
+  useEffect(() => {
+    // Delay playback by 1 second if autoplay is enabled
+    const timer = setTimeout(() => {
+      if (isPlayerReady && player && videoId && autoPlay) {
+        player.playVideo();
       }
-    }
-  };
+    }, 1000);
+
+    // Clean up the timer if videoId changes before the timer completes
+    return () => clearTimeout(timer);
+  }, [videoId, isPlayerReady, player, autoPlay]);
 
   // Function to handle playlist item click
   const handlePlaylistItemClick = (url: string) => {
@@ -168,60 +112,115 @@ const socketUrl = process.env.WEBSOCKET_URL || 'wss://viewer.atemkeng.de/ws'
   const stopVideo = () => player?.stopVideo();
   const rewindVideo = () => player?.seekTo((player?.getCurrentTime() || 0) - 10, true);
   const forwardVideo = () => player?.seekTo((player?.getCurrentTime() || 0) + 10, true);
-  // Function to clear the playlist
-  const clearPlaylist = () => {
-    setPlaylist([]);
-    sendMessage(JSON.stringify({ action: 'clear' }));
-    clearFromPlaylistStore();
+
+  // Fetch playlist from SQLite on component mount
+  useEffect(() => {
+    const fetchPlaylist = async () => {
+      try {
+        const response = await fetch('/api/playlist', { method: 'GET' });
+        console.log("FETCHIG PLAYLIST ========");
+
+        if (response.ok) {
+          console.log('Response:', response);
+
+          const data = await response.json();
+
+          console.log('Data:', data);
+
+          if (data.playlist) {
+            const urls = data.playlist.map((item: string) => item); // Directly map to strings (URLs)
+            console.log('URLs:', urls);
+
+
+
+            setPlaylist(urls);
+            console.log('Playlist:', playlist);
+
+          } else {
+            notification.warning({ message: 'No Playlist Found', description: 'The playlist is currently empty.' });
+          }
+        } else {
+          notification.error({ message: 'Error fetching playlist', description: 'Failed to load the playlist from the server.' });
+        }
+      } catch (error) {
+        console.error('Failed to fetch playlist:', error);
+        notification.error({ message: 'Error', description: 'An error occurred while fetching the playlist.' });
+      }
+    };
+    fetchPlaylist();
+  }, ['']);
+
+  // Add video or playlist to the playlist (API interaction)
+  const addToPlaylist = async () => {
+    if (!validatedUrl) {
+      notification.error({ message: 'Invalid URL', description: 'Please enter a valid YouTube URL.' });
+      return;
+    }
+
+    if (!playlist.includes(validatedUrl)) {
+      try {
+        const response = await fetch('/api/playlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: validatedUrl, action: 'add' }),
+        });
+        const data = await response.json();
+        if (response.ok) {
+          setPlaylist([...playlist, validatedUrl]);
+        } else {
+          notification.error({ message: 'Error adding URL', description: data.error });
+        }
+      } catch (error) {
+        console.error('Failed to add URL to playlist:', error);
+        notification.error({ message: 'Error', description: 'An error occurred while adding the URL to the playlist.' });
+      }
+      setInputUrl('');
+    }
   };
 
-  // Function to remove a specific item from the playlist
-  // const removeFromPlaylist = (url: string) => {
-  //   const updatedPlaylist = playlist.filter(item => item !== url);
-  //   setPlaylist(updatedPlaylist);
-  //   sendMessage(JSON.stringify({ action: 'remove', url }));
-  //   console.log('Before Removing from playlist ----------:', url);
-  //   console.log({ playlist });
-    
-  //   // Remove from Zustand store
-  //   removeFromPlaylistStore(url);
-  //   console.log('After Removing from playlist ----------:');
-  //   console.log({ playlist });
-  // };
-
-
-  const removeFromPlaylist = (url: string) => {
-    const playlist = usePlaylistStore.getState().playlist;  // Get Zustand's playlist state
-    
-    // Log before removing from playlist
-    console.log('Before Removing from playlist ----------:', url);
-    console.log('Current playlist:', playlist);
-  
-    // Remove URL from Zustand store
-    usePlaylistStore.getState().removePlaylist(url);  // This will automatically trigger a state update in Zustand
-  
-    // Check updated Zustand playlist
-    const updatedPlaylist = usePlaylistStore.getState().playlist;
-    console.log('Updated Zustand playlist ----------:', updatedPlaylist);
-  
-    // Send WebSocket message to notify about the removal
-    sendMessage(JSON.stringify({ action: 'remove', url }));
-  
-    // Log final playlist after all actions
-    console.log('After Removing from playlist ----------:');
-
-    console.log('Current playlist:', playlist);
-    console.log({ playlist });
-    
-    
+  // Remove a video from the playlist
+  const removeFromPlaylist = async (url: string) => {
+    try {
+      const response = await fetch('/api/playlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, action: 'remove' }),
+      });
+      if (response.ok) {
+        setPlaylist(playlist.filter((item) => item !== url));
+      } else {
+        const data = await response.json();
+        notification.error({ message: 'Error removing URL', description: data.error });
+      }
+    } catch (error) {
+      console.error('Failed to remove URL from playlist:', error);
+      notification.error({ message: 'Error', description: 'An error occurred while removing the URL from the playlist.' });
+    }
   };
-  
-  
+
+  // Clear the playlist
+  const clearPlaylist = async () => {
+    try {
+      const response = await fetch('/api/playlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'clear' }),
+      });
+      if (response.ok) {
+        setPlaylist([]);
+      } else {
+        notification.error({ message: 'Error clearing playlist' });
+      }
+    } catch (error) {
+      console.error('Failed to clear playlist:', error);
+      notification.error({ message: 'Error', description: 'An error occurred while clearing the playlist.' });
+    }
+  };
 
 
   return (
     <Layout>
-  <Content style={{ padding: '50px', display: 'flex', justifyContent: 'center', background: isDarkMode ? 'black' : 'white' }}>
+      <Content style={{ padding: '50px', display: 'flex', justifyContent: 'center', background: isDarkMode ? 'black' : 'white' }}>
         <Card
           title="YouTube Video Viewer"
           bordered={false}
@@ -240,7 +239,7 @@ const socketUrl = process.env.WEBSOCKET_URL || 'wss://viewer.atemkeng.de/ws'
           }
         >
 
-        <WebSocketStatus />
+          <WebSocketStatus />
 
           <div className="mb-4 flex items-center">
             <Switch
@@ -302,14 +301,16 @@ const socketUrl = process.env.WEBSOCKET_URL || 'wss://viewer.atemkeng.de/ws'
               </div>
             }
             bordered
-            dataSource={playlist} // Use Zustand playlist here
+            style={{ marginTop: '20px', background: 'grrey' }}
+
+            dataSource={playlist}
             renderItem={(url) => (
               <List.Item
-                onClick={() => handlePlaylistItemClick(url)} 
+                onClick={() => handlePlaylistItemClick(url)}
                 style={{ cursor: 'pointer', color: 'grey', display: 'flex', justifyContent: 'space-between' }}
               >
                 <Button type="link" icon={<PlayCircleOutlined />} onClick={playVideo}>
-                  Play  
+                  Play
                 </Button>
                 {url}
                 <Button
@@ -322,8 +323,10 @@ const socketUrl = process.env.WEBSOCKET_URL || 'wss://viewer.atemkeng.de/ws'
                 />
               </List.Item>
             )}
-            style={{ marginTop: '20px', background: 'black' }}
+
           />
+
+
         </Card>
       </Content>
     </Layout>
