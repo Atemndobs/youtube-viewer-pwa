@@ -22,46 +22,6 @@ const YouTubePlayer: React.FC = () => {
   const validatedUrl = validateAndConvertYouTubeUrl(inputUrl);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
 
-  // Handle incoming WebSocket messages
-  useEffect(() => {
-    if (lastMessage !== null) {
-      console.info('Received Last message from WebSocket:');
-      console.info({ lastMessage });
-
-      try {
-        const data = JSON.parse(lastMessage.data);
-        console.log('Received PLAYLIST from WebSocket:', data);
-        // Count current playlist items
-        const currentPlaylistCount = playlist.length;
-
-        if (data.playlist) {
-          setPlaylist(data.playlist); // Update Zustand store with the playlist data from WebSocket
-          const playlistCount = data.playlist.length;
-          // show success notification  if playlist is not empty
-          if (playlistCount) {
-            notification.success({
-              message: 'Playlist Added',
-              description: playlistCount + ' videos from the playlist have been added.',
-
-            })
-          }
-        } else {
-          console.log('No playlist data received from WebSocket');
-          notification.success({
-            message: 'Playlist Items',
-            description: currentPlaylistCount + ' in Playlist',
-
-          });
-        }
-      } catch (error) {
-        console.error('Error parsing WebSocket data:', error);
-        // notification.error({
-        //   message: 'Error',
-        //   description: 'Failed to parse data from the WebSocket.',
-        // });
-      }
-    }
-  }, [lastMessage, setPlaylist]);
   // Handle input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const url = e.target.value;
@@ -113,42 +73,99 @@ const YouTubePlayer: React.FC = () => {
   const rewindVideo = () => player?.seekTo((player?.getCurrentTime() || 0) - 10, true);
   const forwardVideo = () => player?.seekTo((player?.getCurrentTime() || 0) + 10, true);
 
+  const generateDeviceId = () => {
+    const deviceId = Math.random().toString(36).substring(2) + Date.now().toString(36); // Simple unique ID generator
+    localStorage.setItem('deviceId', deviceId);
+    return deviceId;
+  };
+
+  // Handle incoming WebSocket messages
+  useEffect(() => {
+    if (lastMessage !== null) {
+      console.info('Received Last message from WebSocket:', { lastMessage });
+
+      try {
+        const data = JSON.parse(lastMessage.data);
+        console.log('Received PLAYLIST from WebSocket:', data);
+
+        // Extract deviceId from the WebSocket message
+        const deviceId = localStorage.getItem('deviceId') || generateDeviceId(); // Generate or retrieve deviceId
+
+        // Ensure the message is intended for this device
+        if (data.deviceId === deviceId) {
+          const currentPlaylistCount = playlist.length;
+
+          if (data.playlist) {
+            setPlaylist(data.playlist); // Update Zustand store with the playlist data from WebSocket
+
+            const playlistCount = data.playlist.length;
+            if (playlistCount > 0) {
+              console.log('Playlist updated via WebSocket:', data.playlist);
+              
+              // notification.success({
+              //   message: 'Playlist Updated',
+              //   description: `${playlistCount} videos from the playlist have been updated via WebSocket.`,
+              // });
+            }
+          } else {
+            console.log('No playlist data received from WebSocket');
+            notification.info({
+              message: 'Playlist Items',
+              description: `${currentPlaylistCount} in Playlist`,
+            });
+          }
+        } else {
+          console.log('WebSocket message for another device, ignoring.');
+        }
+      } catch (error) {
+        console.error('Error parsing WebSocket data:', error);
+        notification.error({
+          message: 'Error',
+          description: 'Failed to parse data from the WebSocket.',
+        });
+      }
+    }
+  }, [lastMessage, setPlaylist, playlist]);
+
+
   // Fetch playlist from SQLite on component mount
   useEffect(() => {
     const fetchPlaylist = async () => {
       try {
-        const response = await fetch('/api/playlist', { method: 'GET' });
-        console.log("FETCHIG PLAYLIST ========");
+        const deviceId = localStorage.getItem('deviceId') || generateDeviceId(); // Generate or retrieve deviceId
+        const response = await fetch('/api/playlist', {
+          method: 'GET',
+          headers: { 'device-id': deviceId },
+        });
 
         if (response.ok) {
-          console.log('Response:', response);
-
           const data = await response.json();
-
-          console.log('Data:', data);
-
           if (data.playlist) {
-            const urls = data.playlist.map((item: string) => item); // Directly map to strings (URLs)
-            console.log('URLs:', urls);
-
-
-
+            const urls = data.playlist.map((item: string) => item);
             setPlaylist(urls);
-            console.log('Playlist:', playlist);
-
           } else {
-            notification.warning({ message: 'No Playlist Found', description: 'The playlist is currently empty.' });
+            notification.warning({
+              message: 'No Playlist Found',
+              description: 'The playlist is currently empty.',
+            });
           }
         } else {
-          notification.error({ message: 'Error fetching playlist', description: 'Failed to load the playlist from the server.' });
+          notification.error({
+            message: 'Error fetching playlist',
+            description: 'Failed to load the playlist from the server.',
+          });
         }
       } catch (error) {
         console.error('Failed to fetch playlist:', error);
-        notification.error({ message: 'Error', description: 'An error occurred while fetching the playlist.' });
+        notification.error({
+          message: 'Error',
+          description: 'An error occurred while fetching the playlist.',
+        });
       }
     };
     fetchPlaylist();
-  }, ['']);
+  }, []);
+
 
   // Add video or playlist to the playlist (API interaction)
   const addToPlaylist = async () => {
@@ -159,9 +176,10 @@ const YouTubePlayer: React.FC = () => {
 
     if (!playlist.includes(validatedUrl)) {
       try {
+        const deviceId = localStorage.getItem('deviceId') || generateDeviceId(); // Generate or retrieve deviceId
         const response = await fetch('/api/playlist', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'device-id': deviceId },
           body: JSON.stringify({ url: validatedUrl, action: 'add' }),
         });
         const data = await response.json();
@@ -172,18 +190,23 @@ const YouTubePlayer: React.FC = () => {
         }
       } catch (error) {
         console.error('Failed to add URL to playlist:', error);
-        notification.error({ message: 'Error', description: 'An error occurred while adding the URL to the playlist.' });
+        notification.error({
+          message: 'Error',
+          description: 'An error occurred while adding the URL to the playlist.',
+        });
       }
       setInputUrl('');
     }
   };
 
+
   // Remove a video from the playlist
   const removeFromPlaylist = async (url: string) => {
     try {
+      const deviceId = localStorage.getItem('deviceId') || generateDeviceId(); // Generate or retrieve deviceId
       const response = await fetch('/api/playlist', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'device-id': deviceId },
         body: JSON.stringify({ url, action: 'remove' }),
       });
       if (response.ok) {
@@ -194,16 +217,20 @@ const YouTubePlayer: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to remove URL from playlist:', error);
-      notification.error({ message: 'Error', description: 'An error occurred while removing the URL from the playlist.' });
+      notification.error({
+        message: 'Error',
+        description: 'An error occurred while removing the URL from the playlist.',
+      });
     }
   };
 
   // Clear the playlist
   const clearPlaylist = async () => {
     try {
+      const deviceId = localStorage.getItem('deviceId') || generateDeviceId(); // Generate or retrieve deviceId
       const response = await fetch('/api/playlist', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'device-id': deviceId },
         body: JSON.stringify({ action: 'clear' }),
       });
       if (response.ok) {
@@ -213,9 +240,13 @@ const YouTubePlayer: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to clear playlist:', error);
-      notification.error({ message: 'Error', description: 'An error occurred while clearing the playlist.' });
+      notification.error({
+        message: 'Error',
+        description: 'An error occurred while clearing the playlist.',
+      });
     }
   };
+
 
 
   return (
