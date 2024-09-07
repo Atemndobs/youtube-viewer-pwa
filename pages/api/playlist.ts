@@ -4,6 +4,7 @@ import sqlite3 from "sqlite3";
 import { isValidYouTubeUrl } from "../../src/utils";
 import usePlaylistStore from "../../src/store/playlistStore";
 import WebSocket from "ws";
+require('dotenv').config();
 
 // Define the path to your database
 const dbPath = "./db.db";
@@ -160,8 +161,8 @@ export default async function handler(
 
 // WebSocket Notification Helper
 function notifyWebSocket(action: string, deviceId: string | null, url: string | null) {
-  const socketUrl = process.env.WEBSOCKET_URL || "wss://viewer.atemkeng.de/ws";
-  // const socketUrl = "ws://localhost:8681/ws";
+  // const socketUrl = process.env.WEBSOCKET_URL || "wss://viewer.atemkeng.de/ws";
+  const socketUrl = process.env.WEBSOCKET_URL;
   const ws = new WebSocket(socketUrl);
 
   ws.on("open", () => {

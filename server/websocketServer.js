@@ -1,4 +1,5 @@
 const WebSocket = require('ws');
+require('dotenv').config();
 
 // Create a WebSocket server on port 8681
 const server = new WebSocket.Server({ port: 8681 });
@@ -66,7 +67,7 @@ server.on('connection', (ws) => {
 });
 
 const broadcastUpdate = (action, url, targetDeviceId) => {
-  const message = JSON.stringify({ action, url });
+  const message = JSON.stringify({ action, url , targetDeviceId});
 
   clients.forEach(client => {
     if (client.ws.readyState === WebSocket.OPEN && (!targetDeviceId || client.deviceId === targetDeviceId)) {
@@ -75,5 +76,6 @@ const broadcastUpdate = (action, url, targetDeviceId) => {
   });
 };
 
-const socketUrl = process.env.WEBSOCKET_URL || "wss://viewer.atemkeng.de/ws";
+// const socketUrl = process.env.WEBSOCKET_URL || "wss://viewer.atemkeng.de/ws";
+const socketUrl = process.env.WEBSOCKET_URL || "ws://localhost:8681";
 console.log('WebSocket server running on:', socketUrl);

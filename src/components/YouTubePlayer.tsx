@@ -6,6 +6,7 @@ import { isValidYouTubeUrl, validateAndConvertYouTubeUrl } from '../utils';
 import useWebSocket from 'react-use-websocket';
 import WebSocketStatus from './WebSocketStatus';
 import { url } from 'inspector';
+require('dotenv').config();
 
 const { Content } = Layout;
 
@@ -16,8 +17,8 @@ const YouTubePlayer: React.FC = () => {
   const [autoPlay, setAutoPlay] = useState(false);
   const [inputUrl, setInputUrl] = useState('');
   const [playlist, setPlaylist] = useState<string[]>([]); // Use React state for playlist management
-  const socketUrl = process.env.WEBSOCKET_URL || 'wss://viewer.atemkeng.de/ws';
-  // const socketUrl = "ws://localhost:8681";
+  // const socketUrl = process.env.WEBSOCKET_URL || 'wss://viewer.atemkeng.de/ws';
+  const socketUrl = process.env.WEBSOCKET_URL || 'ws://localhost:8681';
 
   const generateDeviceId = () => {
     const deviceId = Math.random().toString(36).substring(2) + Date.now().toString(36); // Simple unique ID generator
@@ -95,29 +96,80 @@ const YouTubePlayer: React.FC = () => {
   const rewindVideo = () => player?.seekTo((player?.getCurrentTime() || 0) - 10, true);
   const forwardVideo = () => player?.seekTo((player?.getCurrentTime() || 0) + 10, true);
 
-    // // Handle incoming WebSocket messages
-    useEffect(() => {
-      const deviceId = localStorage.getItem('deviceId') || generateDeviceId();
-    
-      if (lastMessage !== null) {
+
+  // Handle incoming WebSocket messages
+  useEffect(() => {
+    if (lastMessage !== null) {
+      console.info('Received Last message from WebSocket:', { lastMessage });
+
+      try {
         const data = JSON.parse(lastMessage.data);
-    
-        switch (data.action) {
-          case 'add':
-            setPlaylist((prevPlaylist) => [...prevPlaylist, data.url]);
-            break;
-          case 'remove':
-            setPlaylist((prevPlaylist) => prevPlaylist.filter(item => item !== data.url));
-            break;
-          case 'clear':
-            setPlaylist([]);
-            break;
-          default:
-            console.log('Unknown action:', data.action);
+        console.log('Received PLAYLIST from WebSocket:', data);
+
+        // Extract deviceId from the WebSocket message
+        const deviceId = localStorage.getItem('deviceId') || generateDeviceId(); // Generate or retrieve deviceId
+        // Ensure the message is intended for this device
+        console.log('Device ID:', deviceId);
+        console.log('WebSocket Device ID:', data.targetDeviceId);
+        console.log({data});
+        
+        
+        
+        if (data.targetDeviceId === deviceId) {
+          switch (data.action) {
+            case 'add':
+              setPlaylist((prevPlaylist) => [...prevPlaylist, data.url]);
+              // check that newliy added url does not exit in db
+              const existingUrl = playlist.find((item) => item === data.url);
+              if (!existingUrl) {
+                notification.success({
+                  message: 'Playlist Items',
+                  description: `${data.url} added to  Playlist`,
+                });
+              }
+
+              break;
+            case 'remove':
+              setPlaylist((prevPlaylist) => prevPlaylist.filter(item => item !== data.url));
+                notification.info({
+                  message: 'Removed from Playlist',
+                  // description: `${data.url} removed   Playlist`,
+                });
+              break;
+            case 'clear':
+              setPlaylist([]);
+              notification.info({
+                message: 'Playlist is Empty',
+                // description: `your Playlist is empty`,
+              });
+              break;
+            default:
+              console.log('Unknown action:', data.action);
+          }
+
+        } else {
+          console.log('No playlist data received from WebSocket');
+          // notification.info({
+          //   message: 'Playlist Items',
+          //   description: `${currentPlaylistCount} in Playlist`,
+          // });
         }
+      } catch (error) {
+        console.error('Error parsing WebSocket data:', error);
+        notification.error({
+          message: 'Error',
+          description: 'Failed to parse data from the WebSocket.',
+        });
       }
-    }, [lastMessage, setPlaylist]);
-    
+    }
+  }, [lastMessage, setPlaylist]);
+
+
+
+
+
+
+
 
   // Fetch playlist from SQLite on component mount
   useEffect(() => {
@@ -171,7 +223,7 @@ const YouTubePlayer: React.FC = () => {
       try {
         const response = await fetch('/api/playlist', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json'},
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url: validatedUrl, action: 'add', deviceId }),
         });
         const data = await response.json();
@@ -198,7 +250,7 @@ const YouTubePlayer: React.FC = () => {
     try {
       const response = await fetch('/api/playlist', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url, action: 'remove', deviceId }),
       });
       if (response.ok) {
@@ -218,8 +270,8 @@ const YouTubePlayer: React.FC = () => {
 
   // Clear the playlist
   const clearPlaylist = async () => {
-    try { 
-      const deviceId = localStorage.getItem('deviceId') 
+    try {
+      const deviceId = localStorage.getItem('deviceId')
       const response = await fetch('/api/playlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -330,7 +382,7 @@ const YouTubePlayer: React.FC = () => {
             renderItem={(url) => (
               <List.Item
                 onClick={() => handlePlaylistItemClick(url)}
-                style={{ cursor: 'pointer', color: 'grey', display: 'flex', justifyContent: 'space-between' }}
+                style={{ cursor: 'pointer', color: 'gray', display: 'flex', justifyContent: 'space-between' }}
               >
                 <Button type="link" icon={<PlayCircleOutlined />} onClick={playVideo}>
                   Play
