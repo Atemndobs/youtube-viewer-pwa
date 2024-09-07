@@ -29,31 +29,25 @@ server.on('connection', (ws) => {
         client.deviceId = data.deviceId;
       }
 
-      // Handle different actions based on the message
       switch (data.action) {
         case 'add':
           if (data.url) {
-            console.log('Adding to playlist:', data.url);
-            console.log('Current device if:', data.deviceId);
-            
-            
             playlist.push(data.url);
-            broadcastPlaylist(data.deviceId); // Broadcast the updated playlist to the specific deviceId
+            broadcastUpdate('add', data.url, data.deviceId);
           }
           break;
         case 'clear':
-          playlist = []; // Clear the playlist
-          broadcastPlaylist(); // Broadcast the updated (empty) playlist
+          playlist = [];
+          broadcastUpdate('clear', null, data.deviceId);
           break;
         case 'remove':
           if (data.url) {
             playlist = playlist.filter(item => item !== data.url);
-            broadcastPlaylist(); // Broadcast the updated playlist
+            broadcastUpdate('remove', data.url, data.deviceId);
           }
           break;
-        default:
-          console.error('Default action:', data.action);
       }
+
     } catch (error) {
       console.error('Error processing message:', error);
     }
@@ -71,38 +65,15 @@ server.on('connection', (ws) => {
   });
 });
 
-// Function to broadcast playlist updates to all clients or specific deviceId
-const broadcastPlaylist = (targetDeviceId) => {
-  const message = JSON.stringify({ playlist });
-
-  console.log('Broadcasting playlist update ------------------');
-  console.log({
-    targetDeviceId,
-    playlist,
-    clients
-  });
-  
-
+const broadcastUpdate = (action, url, targetDeviceId) => {
+  const message = JSON.stringify({ action, url });
 
   clients.forEach(client => {
-    if (client.ws.readyState === WebSocket.OPEN) {
-      // If targetDeviceId is provided, send only to matching clients
-      if (!targetDeviceId || client.deviceId === targetDeviceId) {
-        console.log('Sending to client:', client.deviceId);
-        client.ws.send(message);
-      }
+    if (client.ws.readyState === WebSocket.OPEN && (!targetDeviceId || client.deviceId === targetDeviceId)) {
+      client.ws.send(message);
     }
   });
 };
 
-// Export the broadcast function and playlist state
-module.exports = {
-  broadcastPlaylist,
-  updatePlaylist: (newPlaylist) => {
-    playlist = newPlaylist;
-    broadcastPlaylist();
-  }
-};
-
-const socketUrl = process.env.WEBSOCKET_URL || 'ws://localhost:8681';
+const socketUrl = process.env.WEBSOCKET_URL || "wss://viewer.atemkeng.de/ws";
 console.log('WebSocket server running on:', socketUrl);

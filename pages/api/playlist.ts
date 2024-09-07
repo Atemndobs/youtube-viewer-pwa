@@ -33,7 +33,6 @@ export default async function handler(
   const db = await initializeDatabase();
 
 
-
   try {
     // Handle GET request to fetch playlist
     if (req.method === "GET") {
@@ -161,8 +160,8 @@ export default async function handler(
 
 // WebSocket Notification Helper
 function notifyWebSocket(action: string, deviceId: string | null, url: string | null) {
-  // const socketUrl = process.env.WEBSOCKET_URL || "wss://viewer.atemkeng.de/ws";
-  const socketUrl = "ws://localhost:8681/ws";
+  const socketUrl = process.env.WEBSOCKET_URL || "wss://viewer.atemkeng.de/ws";
+  // const socketUrl = "ws://localhost:8681/ws";
   const ws = new WebSocket(socketUrl);
 
   ws.on("open", () => {

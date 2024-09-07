@@ -16,15 +16,14 @@ const YouTubePlayer: React.FC = () => {
   const [autoPlay, setAutoPlay] = useState(false);
   const [inputUrl, setInputUrl] = useState('');
   const [playlist, setPlaylist] = useState<string[]>([]); // Use React state for playlist management
-  // const socketUrl = process.env.WEBSOCKET_URL || 'wss://viewer.atemkeng.de/ws';
-  const socketUrl = "ws://localhost:8681";
+  const socketUrl = process.env.WEBSOCKET_URL || 'wss://viewer.atemkeng.de/ws';
+  // const socketUrl = "ws://localhost:8681";
 
   const generateDeviceId = () => {
     const deviceId = Math.random().toString(36).substring(2) + Date.now().toString(36); // Simple unique ID generator
     localStorage.setItem('deviceId', deviceId);
     return deviceId;
   };
-
 
 
   const { sendMessage, lastMessage, readyState } = useWebSocket(socketUrl, {
@@ -96,54 +95,29 @@ const YouTubePlayer: React.FC = () => {
   const rewindVideo = () => player?.seekTo((player?.getCurrentTime() || 0) - 10, true);
   const forwardVideo = () => player?.seekTo((player?.getCurrentTime() || 0) + 10, true);
 
-    // Handle incoming WebSocket messages
+    // // Handle incoming WebSocket messages
     useEffect(() => {
-      const deviceId = localStorage.getItem('deviceId') || generateDeviceId(); // Generate or retrieve deviceId
+      const deviceId = localStorage.getItem('deviceId') || generateDeviceId();
+    
       if (lastMessage !== null) {
-        console.info('Received Last message from WebSocket:');
-        console.info({ lastMessage });
-  
-        try {
-          const data = JSON.parse(lastMessage.data);
-          console.log('Received PLAYLIST from WebSocket:', data);
-          // Count current playlist items
-          const currentPlaylistCount = playlist.length;
-  
-          if (data.playlist) {
-
-            console.log("WHAT REALLY GOES TO SET PLAYLIST on Device ID", deviceId);
-            console.log(data.playlist);
-            
-            
-
-            setPlaylist(data.playlist); // Update Zustand store with the playlist data from WebSocket
-            const playlistCount = data.playlist.length;
-            // show success notification  if playlist is not empty
-            if (playlistCount) {
-              notification.success({
-                message: 'Playlist Added',
-                description: playlistCount + ' videos from the playlist have been added.',
-        
-              })
-            }
-          }else{
-            console.log('No playlist data received from WebSocket');
-            notification.success({
-              message: 'Playlist Items',
-              description: currentPlaylistCount + ' in Playlist',
-      
-            });
-          }
-        } catch (error) {
-          console.error('Error parsing WebSocket data:', error);
-          // notification.error({
-          //   message: 'Error',
-          //   description: 'Failed to parse data from the WebSocket.',
-          // });
+        const data = JSON.parse(lastMessage.data);
+    
+        switch (data.action) {
+          case 'add':
+            setPlaylist((prevPlaylist) => [...prevPlaylist, data.url]);
+            break;
+          case 'remove':
+            setPlaylist((prevPlaylist) => prevPlaylist.filter(item => item !== data.url));
+            break;
+          case 'clear':
+            setPlaylist([]);
+            break;
+          default:
+            console.log('Unknown action:', data.action);
         }
       }
     }, [lastMessage, setPlaylist]);
-
+    
 
   // Fetch playlist from SQLite on component mount
   useEffect(() => {
@@ -156,7 +130,6 @@ const YouTubePlayer: React.FC = () => {
         });
 
         if (response.ok) {
-
           const data = await response.json();
           console.log('Fetched playlist from server:', data);
           if (data.playlist) {
@@ -245,7 +218,7 @@ const YouTubePlayer: React.FC = () => {
 
   // Clear the playlist
   const clearPlaylist = async () => {
-    try {
+    try { 
       const deviceId = localStorage.getItem('deviceId') 
       const response = await fetch('/api/playlist', {
         method: 'POST',
@@ -375,8 +348,6 @@ const YouTubePlayer: React.FC = () => {
             )}
 
           />
-
-
         </Card>
       </Content>
     </Layout>
