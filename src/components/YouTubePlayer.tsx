@@ -5,6 +5,7 @@ import { PlayCircleOutlined, StopOutlined, BackwardOutlined, ForwardOutlined, Mi
 import { isValidYouTubeUrl, validateAndConvertYouTubeUrl } from '../utils';
 import useWebSocket from 'react-use-websocket';
 import WebSocketStatus from './WebSocketStatus';
+import { url } from 'inspector';
 
 const { Content } = Layout;
 
@@ -16,9 +17,30 @@ const YouTubePlayer: React.FC = () => {
   const [inputUrl, setInputUrl] = useState('');
   const [playlist, setPlaylist] = useState<string[]>([]); // Use React state for playlist management
   // const socketUrl = process.env.WEBSOCKET_URL || 'wss://viewer.atemkeng.de/ws';
-  const socketUrl = "ws://localhost:8681/ws";
+  const socketUrl = "ws://localhost:8681";
+
+  const generateDeviceId = () => {
+    const deviceId = Math.random().toString(36).substring(2) + Date.now().toString(36); // Simple unique ID generator
+    localStorage.setItem('deviceId', deviceId);
+    return deviceId;
+  };
+
+
+
   const { sendMessage, lastMessage, readyState } = useWebSocket(socketUrl, {
     shouldReconnect: () => true, // Reconnect on errors
+    onOpen: () => {
+      // Send the deviceId to the WebSocket server as the first message
+      const deviceId = localStorage.getItem('deviceId') || generateDeviceId(); // Generate or retrieve deviceId
+      sendMessage(JSON.stringify({ deviceId, 'action': 'status' }));
+      console.log('WebSocket connection opened, deviceId sent:', deviceId);
+    },
+    onMessage: (message) => {
+      const data = JSON.parse(message.data);
+      if (data.playlist) {
+        setPlaylist(data.playlist); // Update playlist if received from the server
+      }
+    },
   });
   const validatedUrl = validateAndConvertYouTubeUrl(inputUrl);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
@@ -74,69 +96,60 @@ const YouTubePlayer: React.FC = () => {
   const rewindVideo = () => player?.seekTo((player?.getCurrentTime() || 0) - 10, true);
   const forwardVideo = () => player?.seekTo((player?.getCurrentTime() || 0) + 10, true);
 
-  const generateDeviceId = () => {
-    const deviceId = Math.random().toString(36).substring(2) + Date.now().toString(36); // Simple unique ID generator
-    localStorage.setItem('deviceId', deviceId);
-    return deviceId;
-  };
-
-  // Handle incoming WebSocket messages
-  useEffect(() => {
-    if (lastMessage !== null) {
-      console.info('Received Last message from WebSocket:', { lastMessage });
-
-      try {
-        const data = JSON.parse(lastMessage.data);
-        console.log('Received PLAYLIST from WebSocket:', data);
-
-        // Extract deviceId from the WebSocket message
-        const deviceId = localStorage.getItem('deviceId') || generateDeviceId(); // Generate or retrieve deviceId
-
-        console.log('Device ID:', deviceId);
-        
-
-        // Ensure the message is intended for this device
-        if (data.deviceId === deviceId) {
+    // Handle incoming WebSocket messages
+    useEffect(() => {
+      const deviceId = localStorage.getItem('deviceId') || generateDeviceId(); // Generate or retrieve deviceId
+      if (lastMessage !== null) {
+        console.info('Received Last message from WebSocket:');
+        console.info({ lastMessage });
+  
+        try {
+          const data = JSON.parse(lastMessage.data);
+          console.log('Received PLAYLIST from WebSocket:', data);
+          // Count current playlist items
           const currentPlaylistCount = playlist.length;
-
+  
           if (data.playlist) {
-            setPlaylist(data.playlist); // Update Zustand store with the playlist data from WebSocket
 
+            console.log("WHAT REALLY GOES TO SET PLAYLIST on Device ID", deviceId);
+            console.log(data.playlist);
+            
+            
+
+            setPlaylist(data.playlist); // Update Zustand store with the playlist data from WebSocket
             const playlistCount = data.playlist.length;
-            if (playlistCount > 0) {
-              console.log('Playlist updated via WebSocket:', data.playlist);
-              
-              // notification.success({
-              //   message: 'Playlist Updated',
-              //   description: `${playlistCount} videos from the playlist have been updated via WebSocket.`,
-              // });
+            // show success notification  if playlist is not empty
+            if (playlistCount) {
+              notification.success({
+                message: 'Playlist Added',
+                description: playlistCount + ' videos from the playlist have been added.',
+        
+              })
             }
-          } else {
+          }else{
             console.log('No playlist data received from WebSocket');
-            notification.info({
+            notification.success({
               message: 'Playlist Items',
-              description: `${currentPlaylistCount} in Playlist`,
+              description: currentPlaylistCount + ' in Playlist',
+      
             });
           }
-        } else {
-          console.log('WebSocket message for another device, ignoring.');
+        } catch (error) {
+          console.error('Error parsing WebSocket data:', error);
+          // notification.error({
+          //   message: 'Error',
+          //   description: 'Failed to parse data from the WebSocket.',
+          // });
         }
-      } catch (error) {
-        console.error('Error parsing WebSocket data:', error);
-        notification.error({
-          message: 'Error',
-          description: 'Failed to parse data from the WebSocket.',
-        });
       }
-    }
-  }, [lastMessage, setPlaylist, playlist]);
+    }, [lastMessage, setPlaylist]);
 
 
   // Fetch playlist from SQLite on component mount
   useEffect(() => {
+    const deviceId = localStorage.getItem('deviceId') || generateDeviceId(); // Generate or retrieve deviceId
     const fetchPlaylist = async () => {
       try {
-        const deviceId = localStorage.getItem('deviceId') || generateDeviceId(); // Generate or retrieve deviceId
         const response = await fetch('/api/playlist', {
           method: 'GET',
           headers: { 'device-id': deviceId },
@@ -175,6 +188,7 @@ const YouTubePlayer: React.FC = () => {
 
   // Add video or playlist to the playlist (API interaction)
   const addToPlaylist = async () => {
+    const deviceId = localStorage.getItem('deviceId') || generateDeviceId(); // Generate or retrieve deviceId
     if (!validatedUrl) {
       notification.error({ message: 'Invalid URL', description: 'Please enter a valid YouTube URL.' });
       return;
@@ -182,7 +196,6 @@ const YouTubePlayer: React.FC = () => {
 
     if (!playlist.includes(validatedUrl)) {
       try {
-        const deviceId = localStorage.getItem('deviceId') || generateDeviceId(); // Generate or retrieve deviceId
         const response = await fetch('/api/playlist', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json'},
@@ -208,8 +221,8 @@ const YouTubePlayer: React.FC = () => {
 
   // Remove a video from the playlist
   const removeFromPlaylist = async (url: string) => {
+    const deviceId = localStorage.getItem('deviceId') || generateDeviceId(); // Generate or retrieve deviceId
     try {
-      const deviceId = localStorage.getItem('deviceId') || generateDeviceId(); // Generate or retrieve deviceId
       const response = await fetch('/api/playlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json'},
