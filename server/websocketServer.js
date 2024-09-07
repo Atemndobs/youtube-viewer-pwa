@@ -16,13 +16,15 @@ server.on('connection', (ws) => {
 
   // Handle incoming messages from clients
   ws.on('message', (message) => {
-    console.log(`Received message => ${message}`);
-    console.log(JSON.parse(message));
+    // console.log(`Received message => ${message}`);
+    // console.log(JSON.parse(message));
     
     
     try {
       // Parse the incoming message (assuming it's in JSON format)
       const data = JSON.parse(message);
+      console.log({data});
+      
 
       // Handle different actions based on the message
       switch (data.action) {
@@ -64,7 +66,7 @@ server.on('connection', (ws) => {
   });
 
   // Handle errors
-  ws.on('error', (error) => {
+  ws.on('error', (error) => {  
     console.error('WebSocket error:', error);
   });
 });

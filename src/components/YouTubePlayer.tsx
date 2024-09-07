@@ -15,7 +15,8 @@ const YouTubePlayer: React.FC = () => {
   const [autoPlay, setAutoPlay] = useState(false);
   const [inputUrl, setInputUrl] = useState('');
   const [playlist, setPlaylist] = useState<string[]>([]); // Use React state for playlist management
-  const socketUrl = process.env.WEBSOCKET_URL || 'wss://viewer.atemkeng.de/ws';
+  // const socketUrl = process.env.WEBSOCKET_URL || 'wss://viewer.atemkeng.de/ws';
+  const socketUrl = "ws://localhost:8681/ws";
   const { sendMessage, lastMessage, readyState } = useWebSocket(socketUrl, {
     shouldReconnect: () => true, // Reconnect on errors
   });
@@ -91,6 +92,9 @@ const YouTubePlayer: React.FC = () => {
         // Extract deviceId from the WebSocket message
         const deviceId = localStorage.getItem('deviceId') || generateDeviceId(); // Generate or retrieve deviceId
 
+        console.log('Device ID:', deviceId);
+        
+
         // Ensure the message is intended for this device
         if (data.deviceId === deviceId) {
           const currentPlaylistCount = playlist.length;
@@ -139,7 +143,9 @@ const YouTubePlayer: React.FC = () => {
         });
 
         if (response.ok) {
+
           const data = await response.json();
+          console.log('Fetched playlist from server:', data);
           if (data.playlist) {
             const urls = data.playlist.map((item: string) => item);
             setPlaylist(urls);
@@ -179,8 +185,8 @@ const YouTubePlayer: React.FC = () => {
         const deviceId = localStorage.getItem('deviceId') || generateDeviceId(); // Generate or retrieve deviceId
         const response = await fetch('/api/playlist', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'device-id': deviceId },
-          body: JSON.stringify({ url: validatedUrl, action: 'add' }),
+          headers: { 'Content-Type': 'application/json'},
+          body: JSON.stringify({ url: validatedUrl, action: 'add', deviceId }),
         });
         const data = await response.json();
         if (response.ok) {
@@ -206,8 +212,8 @@ const YouTubePlayer: React.FC = () => {
       const deviceId = localStorage.getItem('deviceId') || generateDeviceId(); // Generate or retrieve deviceId
       const response = await fetch('/api/playlist', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'device-id': deviceId },
-        body: JSON.stringify({ url, action: 'remove' }),
+        headers: { 'Content-Type': 'application/json'},
+        body: JSON.stringify({ url, action: 'remove', deviceId }),
       });
       if (response.ok) {
         setPlaylist(playlist.filter((item) => item !== url));
@@ -227,11 +233,11 @@ const YouTubePlayer: React.FC = () => {
   // Clear the playlist
   const clearPlaylist = async () => {
     try {
-      const deviceId = localStorage.getItem('deviceId') || generateDeviceId(); // Generate or retrieve deviceId
+      const deviceId = localStorage.getItem('deviceId') 
       const response = await fetch('/api/playlist', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'device-id': deviceId },
-        body: JSON.stringify({ action: 'clear' }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'clear', deviceId }),
       });
       if (response.ok) {
         setPlaylist([]);
