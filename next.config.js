@@ -4,6 +4,8 @@ const withPWA = require("next-pwa")({
   skipWaiting: true,
 });
 
+const path = require('path');
+
 const nextConfig = withPWA({
   reactStrictMode: true,
   webpack: (config, { isServer }) => {
@@ -14,6 +16,9 @@ const nextConfig = withPWA({
         bindings: false,
       };
     }
+
+    config.resolve.alias['@utils'] = path.resolve(__dirname, 'src/utils');
+
     return config;
   },
 });

@@ -3,9 +3,8 @@ import YouTube from 'react-youtube';
 import { Layout, Card, Input, Button, Space, Switch, List, notification } from 'antd';
 import { PlayCircleOutlined, StopOutlined, BackwardOutlined, ForwardOutlined, MinusCircleOutlined, DeleteOutlined } from '@ant-design/icons';
 import { isValidYouTubeUrl, validateAndConvertYouTubeUrl } from '../utils';
-import useWebSocket from 'react-use-websocket';
-import WebSocketStatus from './WebSocketStatus';
-import { url } from 'inspector';
+
+// import { url } from 'inspector';
 require('dotenv').config();
 
 const { Content } = Layout;
@@ -17,8 +16,7 @@ const YouTubePlayer: React.FC = () => {
   const [autoPlay, setAutoPlay] = useState(false);
   const [inputUrl, setInputUrl] = useState('');
   const [playlist, setPlaylist] = useState<string[]>([]); // Use React state for playlist management
-  const socketUrl = process.env.WEBSOCKET_URL || 'wss://viewer.atemkeng.de/ws';
-  // const socketUrl = process.env.WEBSOCKET_URL || 'ws://localhost:8681';
+
 
   const generateDeviceId = () => {
     const deviceId = Math.random().toString(36).substring(2) + Date.now().toString(36); // Simple unique ID generator
@@ -26,22 +24,6 @@ const YouTubePlayer: React.FC = () => {
     return deviceId;
   };
 
-
-  const { sendMessage, lastMessage, readyState } = useWebSocket(socketUrl, {
-    shouldReconnect: () => true, // Reconnect on errors
-    onOpen: () => {
-      // Send the deviceId to the WebSocket server as the first message
-      const deviceId = localStorage.getItem('deviceId') || generateDeviceId(); // Generate or retrieve deviceId
-      sendMessage(JSON.stringify({ deviceId, 'action': 'status' }));
-      console.log('WebSocket connection opened, deviceId sent:', deviceId);
-    },
-    onMessage: (message) => {
-      const data = JSON.parse(message.data);
-      if (data.playlist) {
-        setPlaylist(data.playlist); // Update playlist if received from the server
-      }
-    },
-  });
   const validatedUrl = validateAndConvertYouTubeUrl(inputUrl);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
 
@@ -97,83 +79,12 @@ const YouTubePlayer: React.FC = () => {
   const forwardVideo = () => player?.seekTo((player?.getCurrentTime() || 0) + 10, true);
 
 
-  // Handle incoming WebSocket messages
-  useEffect(() => {
-    if (lastMessage !== null) {
-      console.info('Received Last message from WebSocket:', { lastMessage });
-
-      try {
-        const data = JSON.parse(lastMessage.data);
-        console.log('Received PLAYLIST from WebSocket:', data);
-
-        // Extract deviceId from the WebSocket message
-        const deviceId = localStorage.getItem('deviceId') || generateDeviceId(); // Generate or retrieve deviceId
-        // Ensure the message is intended for this device
-        console.log('Device ID:', deviceId);
-        console.log('WebSocket Device ID:', data.targetDeviceId);
-        console.log({data});
-        
-        
-        
-        if (data.targetDeviceId === deviceId) {
-          switch (data.action) {
-            case 'add':
-              setPlaylist((prevPlaylist) => [...prevPlaylist, data.url]);
-              // check that newliy added url does not exit in db
-              const existingUrl = playlist.find((item) => item === data.url);
-              if (!existingUrl) {
-                notification.success({
-                  message: 'Playlist Items',
-                  description: `${data.url} added to  Playlist`,
-                });
-              }
-
-              break;
-            case 'remove':
-              setPlaylist((prevPlaylist) => prevPlaylist.filter(item => item !== data.url));
-                notification.info({
-                  message: 'Removed from Playlist',
-                  // description: `${data.url} removed   Playlist`,
-                });
-              break;
-            case 'clear':
-              setPlaylist([]);
-              notification.info({
-                message: 'Playlist is Empty',
-                // description: `your Playlist is empty`,
-              });
-              break;
-            default:
-              console.log('Unknown action:', data.action);
-          }
-
-        } else {
-          console.log('No playlist data received from WebSocket');
-          // notification.info({
-          //   message: 'Playlist Items',
-          //   description: `${currentPlaylistCount} in Playlist`,
-          // });
-        }
-      } catch (error) {
-        console.error('Error parsing WebSocket data:', error);
-        notification.error({
-          message: 'Error',
-          description: 'Failed to parse data from the WebSocket.',
-        });
-      }
-    }
-  }, [lastMessage, setPlaylist]);
-
-
-
-
-
-
-
-
   // Fetch playlist from SQLite on component mount
   useEffect(() => {
     const deviceId = localStorage.getItem('deviceId') || generateDeviceId(); // Generate or retrieve deviceId
+
+    console.log('Device ID:', deviceId);
+    
     const fetchPlaylist = async () => {
       try {
         const response = await fetch('/api/playlist', {
@@ -196,7 +107,7 @@ const YouTubePlayer: React.FC = () => {
         } else {
           notification.error({
             message: 'Error fetching playlist',
-            description: 'Failed to load the playlist from the server.',
+            description: 'Failed to load the playlist from the server.' + deviceId,
           });
         }
       } catch (error) {
@@ -228,7 +139,7 @@ const YouTubePlayer: React.FC = () => {
         });
         const data = await response.json();
         if (response.ok) {
-          //  setPlaylist([...playlist, validatedUrl]);
+           setPlaylist([...playlist, validatedUrl]);
           // get all playlist for this device id from response and set it to playlist state
           // const urls = data.playlist.map((item: string) => item);
           // setPlaylist(urls);
@@ -324,7 +235,7 @@ const YouTubePlayer: React.FC = () => {
           }
         >
 
-          <WebSocketStatus />
+          {/* <WebSocketStatus /> */}
 
           <div className="mb-4 flex items-center">
             <Switch

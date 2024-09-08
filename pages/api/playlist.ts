@@ -1,28 +1,18 @@
+// src/pages/api/playlist.ts
+
 import { NextApiRequest, NextApiResponse } from "next";
-import { open } from "sqlite";
-import sqlite3 from "sqlite3";
+import { appwriteDatabase } from "../../src/utils/appwrite/client"; // Adjust path as necessary
+import { DATABASE_ID, COLLECTION_ID } from "../../src/utils/constants";
 import { isValidYouTubeUrl } from "../../src/utils";
 import usePlaylistStore from "../../src/store/playlistStore";
-import WebSocket from "ws";
-require('dotenv').config();
 
-// Define the path to your database
-const dbPath = "./db.db";
+import { Client, Databases, Query } from "appwrite";
 
-// Helper function to initialize the database and ensure the playlist table exists
-const initializeDatabase = async () => {
-  const db = await open({
-    filename: dbPath,
-    driver: sqlite3.Database,
-  });
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS playlist (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      url TEXT NOT NULL,
-      deviceId TEXT NOT NULL
-    )
-  `);
-  return db;
+
+// Helper function to initialize the Appwrite database
+const getAppwriteDatabase = async () => {
+  const database = appwriteDatabase;
+  return database;
 };
 
 // API Handler
@@ -30,53 +20,64 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  // Initialize the database aaa
-  const db = await initializeDatabase();
+  const db = await getAppwriteDatabase();
+
+
+// let promise = db.listDocuments(
+//     "66ddbc6100038c438c10",
+//     "66ddbc72003b19672eaf",
+//     []
+// );
+
+// promise.then(function (response) {
+//     console.log(response);
+// }, function (error) {
+//     console.log(error);
+// });
 
 
   try {
     // Handle GET request to fetch playlist
     if (req.method === "GET") {
-      // Extract deviceId from the headers (or generate a unique one if not provided)
       const deviceId = req.headers["device-id"] as string;
+      console.log("===================STARTING GET REQUEST=====================");
+      
       console.log({deviceId});
       
       if (!deviceId) {
         return res.status(400).json({ error: "Device ID is required." });
       }
-      const rows = await db.all("SELECT url FROM playlist WHERE deviceId = ?", [
-        deviceId,
+
+      const response = await db.listDocuments(DATABASE_ID, COLLECTION_ID, [
+        Query.equal('deviceId', deviceId)
       ]);
-      return res.status(200).json({ playlist: rows.map((row) => row.url) });
+      console.log({ response });
+      
+
+      const playlist = response.documents.map((doc) => doc.url);
+      console.log({ playlist });
+      
+
+      return res.status(200).json({ playlist });
     }
 
     // Handle POST request to modify playlist
     if (req.method === "POST") {
       const { url, action, deviceId }: { url?: string; action?: "remove" | "clear"; deviceId: string } = req.body;
 
-      console.log({url, action, deviceId});
-      
-
-
-      
-
-      // Access Zustand store
       const playlistStore = usePlaylistStore.getState();
 
       // Clear the playlist for the specific device
       if (action === "clear") {
-        await db.run("DELETE FROM playlist WHERE deviceId = ?", [deviceId]);
-        playlistStore.clearPlaylist();
-        // get all playlist for this device
-        const rows = await db.all("SELECT url FROM playlist WHERE deviceId = ?", [
-          deviceId,
+        const response = await db.listDocuments(DATABASE_ID, COLLECTION_ID, [
+          Query.equal('deviceId', deviceId)
         ]);
-        console.log({rows});
+
+        for (const doc of response.documents) {
+          await db.deleteDocument(DATABASE_ID, COLLECTION_ID, doc.$id);
+        }
         
-
-        // WebSocket Communication
-        notifyWebSocket("clear", deviceId, null);
-
+        playlistStore.clearPlaylist();
         return res.status(200).json({
           message: "Playlist cleared",
           playlist: playlistStore.playlist,
@@ -89,22 +90,17 @@ export default async function handler(
           return res.status(400).json({ error: "URL is required for remove action" });
         }
 
-        const existingUrl = await db.get(
-          "SELECT url FROM playlist WHERE url = ? AND deviceId = ?",
-          [url, deviceId]
-        );
-        if (!existingUrl) {
+        const response = await db.listDocuments(DATABASE_ID, COLLECTION_ID, [
+          Query.equal('deviceId', deviceId),
+          Query.equal('url', url)
+        ]);
+
+        if (response.documents.length === 0) {
           return res.status(404).json({ error: "URL not found in playlist" });
         }
 
-        await db.run("DELETE FROM playlist WHERE url = ? AND deviceId = ?", [
-          url,
-          deviceId,
-        ]);
+        await db.deleteDocument(DATABASE_ID, COLLECTION_ID, response.documents[0].$id);
         playlistStore.removePlaylist(url);
-
-        // WebSocket Communication
-        notifyWebSocket("remove", deviceId, url);
 
         return res.status(200).json({
           message: "URL removed from playlist",
@@ -118,67 +114,43 @@ export default async function handler(
           return res.status(400).json({ error: "Invalid YouTube URL" });
         }
 
-        const existingUrl = await db.get(
-          "SELECT url FROM playlist WHERE url = ? AND deviceId = ?",
-          [url, deviceId]
-        );
-        if (existingUrl) {
-          return res
-            .status(200)
-            .json({
-              message: "URL already in playlist",
-              playlist: playlistStore.playlist,
-            });
+        const response = await db.listDocuments(DATABASE_ID, COLLECTION_ID, [
+          Query.equal('deviceId', deviceId),
+          Query.equal('url', url)
+        ]);
+
+        if (response.documents.length > 0) {
+          return res.status(200).json({
+            message: "URL already in playlist",
+            playlist: playlistStore.playlist,
+          });
         }
 
-        await db.run("INSERT INTO playlist (url, deviceId) VALUES (?, ?)", [
+        await db.createDocument(DATABASE_ID, COLLECTION_ID, 'unique()', {
           url,
-          deviceId,
-        ]);
+          deviceId
+        });
+
         playlistStore.addToPlaylist(url);
-        // get all playlist for this device from the database
-        const devicePlaylists = await db.all("SELECT url FROM playlist WHERE deviceId = ?", [
-          deviceId,
+
+        const updatedResponse = await db.listDocuments(DATABASE_ID, COLLECTION_ID, [
+          Query.equal('deviceId', deviceId)
         ]);
-
-        // WebSocket Communication
-        notifyWebSocket("add", deviceId, url);
-
-        console.log({devicePlaylists});
-        
 
         return res.status(200).json({
           message: "URL added to playlist",
-          // playlist: playlistStore.playlist,
-          playlist: devicePlaylists.map((row) => row.url),
+          playlist: updatedResponse.documents.map((doc) => doc.url),
         });
       } else {
         return res.status(400).json({ error: "URL is required for add action" });
       }
     }
 
-    // Method not allowed
+    // // Method not allowed
     return res.status(405).json({ error: "Method not allowed" });
-  } catch (err) {
-    console.error("Database error:", err);
+  } catch (error) {
+    console.error("Database error:", error);
     return res.status(500).json({ error: "Database error" });
-  } finally {
-    await db.close(); // Ensure database connection is closed
   }
 }
 
-// WebSocket Notification Helper
-function notifyWebSocket(action: string, deviceId: string | null, url: string | null) {
-  const socketUrl = process.env.WEBSOCKET_URL || "wss://viewer.atemkeng.de/ws";
-  // const socketUrl = process.env.WEBSOCKET_URL;
-  const ws = new WebSocket(socketUrl);
-
-  ws.on("open", () => {
-    ws.send(JSON.stringify({ action, deviceId, url }));
-    ws.close();
-  });
-
-  ws.on("error", (error: WebSocket.ErrorEvent) => {
-    console.error("WebSocket error:", error);
-  });
-}
