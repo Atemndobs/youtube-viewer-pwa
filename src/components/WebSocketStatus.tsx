@@ -3,8 +3,8 @@ import { Badge, Space } from 'antd';
 import useWebSocket from 'react-use-websocket';
 
 const WebSocketStatus = () => {
-    // const socketUrl = process.env.WEBSOCKET_URL || 'wss://viewer.atemkeng.de/ws';
-    const socketUrl = process.env.WEBSOCKET_URL|| 'ws://localhost:8681';
+    const socketUrl = process.env.WEBSOCKET_URL || 'wss://viewer.atemkeng.de/ws';
+    // const socketUrl = process.env.WEBSOCKET_URL|| 'ws://localhost:8681';
     const { readyState } = useWebSocket(socketUrl, {
         shouldReconnect: () => true, // Reconnect on errors
     });

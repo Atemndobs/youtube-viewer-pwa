@@ -8,18 +8,6 @@ const { Header, Content, Footer } = AntLayout;
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <AntLayout className="min-h-screen">
-
-      {/* Uncomment this if you need a header
-      <Header className="bg-black text-gray-400 sticky top-0 z-0">
-        <div className="container mx-auto flex items-center justify-between h-full">
-          <div className="text-xl font-bold text-center flex-grow">
-            YouTube Video Viewer
-          </div>
-        </div>
-      </Header>
-      */}
-
-      {/* Main Content */}
       <Content className="bg-black flex-grow">
         {children}
       </Content>

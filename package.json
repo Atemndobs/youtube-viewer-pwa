@@ -15,6 +15,7 @@
     "@refinedev/simple-rest": "^5.0.8",
     "@types/react-youtube": "^7.6.2",
     "antd": "^5.20.3",
+    "appwrite": "^15.0.0",
     "classnames": "^2.3.2",
     "cross-env": "^7.0.3",
     "dayjs": "^1.10.7",

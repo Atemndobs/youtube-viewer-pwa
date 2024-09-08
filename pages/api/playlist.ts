@@ -136,13 +136,21 @@ export default async function handler(
           deviceId,
         ]);
         playlistStore.addToPlaylist(url);
+        // get all playlist for this device from the database
+        const devicePlaylists = await db.all("SELECT url FROM playlist WHERE deviceId = ?", [
+          deviceId,
+        ]);
 
         // WebSocket Communication
         notifyWebSocket("add", deviceId, url);
 
+        console.log({devicePlaylists});
+        
+
         return res.status(200).json({
           message: "URL added to playlist",
-          playlist: playlistStore.playlist,
+          // playlist: playlistStore.playlist,
+          playlist: devicePlaylists.map((row) => row.url),
         });
       } else {
         return res.status(400).json({ error: "URL is required for add action" });
@@ -161,8 +169,8 @@ export default async function handler(
 
 // WebSocket Notification Helper
 function notifyWebSocket(action: string, deviceId: string | null, url: string | null) {
-  // const socketUrl = process.env.WEBSOCKET_URL || "wss://viewer.atemkeng.de/ws";
-  const socketUrl = process.env.WEBSOCKET_URL;
+  const socketUrl = process.env.WEBSOCKET_URL || "wss://viewer.atemkeng.de/ws";
+  // const socketUrl = process.env.WEBSOCKET_URL;
   const ws = new WebSocket(socketUrl);
 
   ws.on("open", () => {

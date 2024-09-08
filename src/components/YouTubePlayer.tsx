@@ -17,8 +17,8 @@ const YouTubePlayer: React.FC = () => {
   const [autoPlay, setAutoPlay] = useState(false);
   const [inputUrl, setInputUrl] = useState('');
   const [playlist, setPlaylist] = useState<string[]>([]); // Use React state for playlist management
-  // const socketUrl = process.env.WEBSOCKET_URL || 'wss://viewer.atemkeng.de/ws';
-  const socketUrl = process.env.WEBSOCKET_URL || 'ws://localhost:8681';
+  const socketUrl = process.env.WEBSOCKET_URL || 'wss://viewer.atemkeng.de/ws';
+  // const socketUrl = process.env.WEBSOCKET_URL || 'ws://localhost:8681';
 
   const generateDeviceId = () => {
     const deviceId = Math.random().toString(36).substring(2) + Date.now().toString(36); // Simple unique ID generator
@@ -228,7 +228,15 @@ const YouTubePlayer: React.FC = () => {
         });
         const data = await response.json();
         if (response.ok) {
-          setPlaylist([...playlist, validatedUrl]);
+          //  setPlaylist([...playlist, validatedUrl]);
+          // get all playlist for this device id from response and set it to playlist state
+          // const urls = data.playlist.map((item: string) => item);
+          // setPlaylist(urls);
+          console.log({
+            data,
+            deviceId
+          });
+          
         } else {
           notification.error({ message: 'Error adding URL', description: data.error });
         }
@@ -240,6 +248,8 @@ const YouTubePlayer: React.FC = () => {
         });
       }
       setInputUrl('');
+    }else{
+      notification.warning({ message: 'URL already in Playlist', description: 'Please enter a new YouTube URL.' });
     }
   };
 
