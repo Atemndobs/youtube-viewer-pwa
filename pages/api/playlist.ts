@@ -1,12 +1,12 @@
 // src/pages/api/playlist.ts
 
 import { NextApiRequest, NextApiResponse } from "next";
-import { appwriteDatabase } from "../../src/utils/appwrite/client"; // Adjust path as necessary
+import { appwriteDatabase, appwriteClient } from "../../src/utils/appwrite/client"; // Adjust path as necessary
 import { DATABASE_ID, COLLECTION_ID } from "../../src/utils/constants";
 import { isValidYouTubeUrl } from "../../src/utils";
 import usePlaylistStore from "../../src/store/playlistStore";
 
-import { Client, Databases, Query } from "appwrite";
+import { Query } from "appwrite";
 
 
 // Helper function to initialize the Appwrite database
@@ -23,19 +23,6 @@ export default async function handler(
   const db = await getAppwriteDatabase();
 
 
-// let promise = db.listDocuments(
-//     "66ddbc6100038c438c10",
-//     "66ddbc72003b19672eaf",
-//     []
-// );
-
-// promise.then(function (response) {
-//     console.log(response);
-// }, function (error) {
-//     console.log(error);
-// });
-
-
   try {
     // Handle GET request to fetch playlist
     if (req.method === "GET") {
@@ -43,6 +30,7 @@ export default async function handler(
       console.log("===================STARTING GET REQUEST=====================");
       
       console.log({deviceId});
+
       
       if (!deviceId) {
         return res.status(400).json({ error: "Device ID is required." });
@@ -51,11 +39,10 @@ export default async function handler(
       const response = await db.listDocuments(DATABASE_ID, COLLECTION_ID, [
         Query.equal('deviceId', deviceId)
       ]);
-      console.log({ response });
       
 
       const playlist = response.documents.map((doc) => doc.url);
-      console.log({ playlist });
+      // console.log({ playlist });
       
 
       return res.status(200).json({ playlist });
