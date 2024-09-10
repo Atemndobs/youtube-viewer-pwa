@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import YouTube from 'react-youtube';
 import { Layout, Card, Input, Button, Space, Switch, List, notification } from 'antd';
-import { PlayCircleOutlined, StopOutlined, BackwardOutlined, ForwardOutlined, MinusCircleOutlined, DeleteOutlined } from '@ant-design/icons';
-import { isValidYouTubeUrl, validateAndConvertYouTubeUrl } from '../utils';
+import { PlayCircleOutlined, StopOutlined, BackwardOutlined, ForwardOutlined, MinusCircleOutlined, DeleteOutlined, UnorderedListOutlined } from '@ant-design/icons';
+import { getYouTubeVideoTitle, isValidYouTubeUrl, validateAndConvertYouTubeUrl } from '../utils';
 import { appwriteClient, appwriteDatabase } from '../utils/appwrite/client'; // Import your Appwrite client setup
-import {  Query } from 'appwrite'; // Adjust according to your SDK version and types
+import { Query } from 'appwrite'; // Adjust according to your SDK version and types
 import { COLLECTION_ID, DATABASE_ID } from 'src/utils/constants';
+import { title } from 'process';
+// import { useLocation } from 'react-router-dom'; // Add this if you're using react-router
+
 
 const { Content } = Layout;
 
@@ -15,12 +18,18 @@ const YouTubePlayer: React.FC = () => {
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [autoPlay, setAutoPlay] = useState(false);
   const [inputUrl, setInputUrl] = useState('');
-  const [playlist, setPlaylist] = useState<string[]>([]);
+  const [playlist, setPlaylist] = useState<PlaylistItem[]>([]);
+  const [deviceId, setDeviceId] = useState<string>(''); 
 
   const generateDeviceId = () => {
-    const deviceId = Math.random().toString(36).substring(2) + Date.now().toString(36);
-    localStorage.setItem('deviceId', deviceId);
-    return deviceId;
+    const newDeviceId = Math.random().toString(36).substring(2) + Date.now().toString(36);
+    localStorage.setItem('deviceId', newDeviceId);
+    return newDeviceId;
+  };
+
+  const getDeviceIdFromUrl = () => {
+    const searchParams = new URLSearchParams(window.location.search);
+    return searchParams.get('deviceId') || '';
   };
 
   const validatedUrl = validateAndConvertYouTubeUrl(inputUrl);
@@ -41,6 +50,28 @@ const YouTubePlayer: React.FC = () => {
       });
     }
   };
+
+  useEffect(() => {
+    // Check if deviceId is passed in URL or generate a new one
+    const urlDeviceId = getDeviceIdFromUrl();
+    const storedDeviceId = localStorage.getItem('deviceId');
+
+    console.log({
+      urlDeviceId,
+      storedDeviceId,
+    });
+    
+
+    if (urlDeviceId) {
+      setDeviceId(urlDeviceId);
+      localStorage.setItem('deviceId', urlDeviceId); // Store it in local storage for future use
+    } else if (storedDeviceId) {
+      setDeviceId(storedDeviceId);
+    } else {
+      const newDeviceId = generateDeviceId();
+      setDeviceId(newDeviceId);
+    }
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -75,64 +106,13 @@ const YouTubePlayer: React.FC = () => {
   interface PlaylistPayload {
     deviceId: string;
     url: string;
+    title: string;
   }
 
-//   useEffect(() => {
-//     const deviceId = localStorage.getItem('deviceId') || generateDeviceId();
-//     console.log('Before Fetching Playlist_________________________');
-//     console.log('Device ID:', deviceId);
-    
-    
-  
-//     const fetchPlaylist = async () => {
-//       try {
-//         const response = await fetch('/api/playlist', {
-//           method: 'GET',
-//           headers: { 'device-id': deviceId },
-//         });
-  
-//         if (response.ok) {
-//           const data = await response.json();
-//           if (data.playlist) {
-//             setPlaylist(data.playlist);
-//           } else {
-//             notification.warning({
-//               message: 'No Playlist Found',
-//               description: 'The playlist is currently empty.',
-//             });
-//           }
-//         } else {
-//           notification.error({
-//             message: 'Error fetching playlist',
-//             description: 'Failed to load the playlist from the server.',
-//           });
-//         }
-//       } catch (error) {
-//         notification.error({
-//           message: 'Error',
-//           description: 'An error occurred while fetching the playlist.',
-//         });
-//       }
-//     };
-  
-//     fetchPlaylist();
-
-//     console.log('goin tto subscribe_________________________');
-    
-//       // Subscribe to real-time updates
-//       appwriteClient.subscribe('playlists', response => {
-//         console.log('Subscription response:', response);
-//         fetchPlaylist();
-      
-//     });
-
-// }, []);
-
-  
-
-
-
-
+  interface PlaylistItem {
+    url: string;
+    title: string;
+  }
 
   // Fetch playlist from SQLite on component mount
   useEffect(() => {
@@ -142,18 +122,24 @@ const YouTubePlayer: React.FC = () => {
       const subscribedDeviceId = payload.deviceId;
       const url = payload.url;
       const events = response.events;
-  
+      const title = payload.title
+
       if (deviceId === subscribedDeviceId && events.includes('databases.*.collections.*.documents.*.create')) {
         console.log('---------inside create event subscribe------------------');
         console.log('Adding URL to playlist:', url);
         console.log('Device ID:', deviceId);
-  
+
         setPlaylist(prevPlaylist => {
-          // Check if the URL already exists in the playlist
-          if (!prevPlaylist.includes(url)) {
-            return [...prevPlaylist, url];
+          console.log('Previous playlist ==================');
+          console.log({ prevPlaylist });
+
+          // Check if the URL already exists in the playlist by checking the URL field in the playlist objects
+          if (!prevPlaylist.some(item => item.url === url)) {
+            // return [...prevPlaylist, { url, title }]; // Add the new video with both URL and title
+            return [{ url, title }, ...prevPlaylist];
+
           }
-          return prevPlaylist; // No changes if the URL is already present
+          return prevPlaylist; // Return the playlist unchanged if the URL is already present
         });
       }
 
@@ -170,8 +156,10 @@ const YouTubePlayer: React.FC = () => {
           const data = await response.json();
           console.log('Fetched playlist from server:', data);
           if (data.playlist) {
-            const urls = data.playlist.map((item: string) => item);
-            setPlaylist(urls);
+            console.log(data.playlist);
+
+            const items = data.playlist.map((item: string) => item);
+            setPlaylist(items);
           } else {
             notification.warning({
               message: 'No Playlist Found',
@@ -195,16 +183,25 @@ const YouTubePlayer: React.FC = () => {
     fetchPlaylist();
   }, []);
 
-
-
+  // Add to Playlist function
   const addToPlaylist = async () => {
-    const deviceId = localStorage.getItem('deviceId') || generateDeviceId();
-    if (!validatedUrl) {
-      notification.error({ message: 'Invalid URL', description: 'Please enter a valid YouTube URL.' });
+    const validUrl = validateAndConvertYouTubeUrl(inputUrl);
+    console.log('VALID URL');
+
+    console.log(validUrl);
+
+
+    if (!validUrl) {
+      notification.error({
+        message: 'Invalid URL',
+        description: 'Please enter a valid YouTube video or playlist URL.',
+      });
       return;
     }
 
-    if (!playlist.includes(validatedUrl)) {
+    try {
+
+      const deviceId = localStorage.getItem('deviceId') || generateDeviceId();
       try {
         const response = await fetch('/api/playlist', {
           method: 'POST',
@@ -213,7 +210,20 @@ const YouTubePlayer: React.FC = () => {
         });
         const data = await response.json();
         if (response.ok) {
-          setPlaylist([...playlist, validatedUrl]);
+          const title  = data.title;
+          console.log('title', title);
+          
+          setPlaylist(prevPlaylist => {
+            if (!prevPlaylist.some(item => item.url === validUrl)) {
+              // return [...prevPlaylist, { url: validUrl, title }];
+              return [{ url: validUrl, title }, ...prevPlaylist];
+
+            }
+            return prevPlaylist;
+          });
+
+          console.log(playlist);
+
         } else {
           notification.error({ message: 'Error adding URL', description: data.error });
         }
@@ -224,11 +234,16 @@ const YouTubePlayer: React.FC = () => {
           description: 'An error occurred while adding the URL to the playlist.',
         });
       }
-      setInputUrl('');
-    } else {
-      notification.warning({ message: 'URL already in Playlist', description: 'Please enter a new YouTube URL.' });
+      setInputUrl(''); // Clear the input after adding
+    } catch (error) {
+      console.error('Error fetching video title:', error);
+      notification.error({
+        message: 'Error',
+        description: 'An error occurred while fetching the video title.',
+      });
     }
   };
+
 
   const removeFromPlaylist = async (url: string) => {
     const deviceId = localStorage.getItem('deviceId') || generateDeviceId();
@@ -239,7 +254,8 @@ const YouTubePlayer: React.FC = () => {
         body: JSON.stringify({ url, action: 'remove', deviceId }),
       });
       if (response.ok) {
-        setPlaylist(playlist.filter((item) => item !== url));
+        // Update playlist by filtering out the item with the matching URL
+        setPlaylist(prevPlaylist => prevPlaylist.filter(item => item.url !== url));
       } else {
         const data = await response.json();
         notification.error({ message: 'Error removing URL', description: data.error });
@@ -261,7 +277,9 @@ const YouTubePlayer: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'clear', deviceId }),
       });
+
       if (response.ok) {
+        // Clear the playlist by setting it to an empty array
         setPlaylist([]);
       } else {
         notification.error({ message: 'Error clearing playlist' });
@@ -274,6 +292,7 @@ const YouTubePlayer: React.FC = () => {
       });
     }
   };
+
 
   return (
     <Layout>
@@ -310,6 +329,11 @@ const YouTubePlayer: React.FC = () => {
             value={inputUrl}
             onChange={handleInputChange}
             onFocus={(e) => e.target.select()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                addToPlaylist();
+              }
+            }}
             className="mb-5 bg-gray-400"
           />
           <Button type="primary" onClick={addToPlaylist} className="mb-5">
@@ -346,19 +370,24 @@ const YouTubePlayer: React.FC = () => {
             header={
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'white' }}>
                 <span>Playlist</span>
-                <Button
-                  icon={<MinusCircleOutlined />}
-                  onClick={clearPlaylist}
-                  style={{ color: 'white', border: 'none', background: 'transparent' }}
-                >
-                  Clear
-                </Button>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <UnorderedListOutlined style={{ marginRight: '8px', color: 'white' }} />
+                  <span style={{ color: 'white', marginRight: '16px' }}>{playlist.length}</span> {/* Playlist counter */}
+                  <Button
+                    icon={<MinusCircleOutlined />}
+                    onClick={clearPlaylist}
+                    style={{ color: 'white', border: 'none', background: 'transparent' }}
+                  >
+                    Clear
+                  </Button>
+                </div>
+
               </div>
             }
             bordered
             style={{ marginTop: '20px', background: 'grrey' }}
             dataSource={playlist}
-            renderItem={(url) => (
+            renderItem={({ url, title }) => (
               <List.Item
                 onClick={() => handlePlaylistItemClick(url)}
                 style={{ cursor: 'pointer', color: 'gray', display: 'flex', justifyContent: 'space-between' }}
@@ -366,7 +395,7 @@ const YouTubePlayer: React.FC = () => {
                 <Button type="link" icon={<PlayCircleOutlined />} onClick={playVideo}>
                   Play
                 </Button>
-                {url}
+                {title}
                 <Button
                   icon={<DeleteOutlined />}
                   onClick={(e) => {

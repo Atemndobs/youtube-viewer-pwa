@@ -13,3 +13,6 @@ db.sqlite3
 .aider*
 .env
 __Constants__
+pages/api/add-to-playlist.ts
+appwrite-docker-compose.yml
+appwrite.env

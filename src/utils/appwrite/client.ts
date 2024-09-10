@@ -17,10 +17,6 @@ export const appwriteClient = new Client();
 const appwriteJWT = Cookies.get(APPWRITE_JWT_KEY);
 
 
-// console.log("====================================");
-
-// console.log("appwriteJWT", appwriteJWT);
-
 if (appwriteJWT) {
   appwriteClient.setJWT(appwriteJWT);
 }

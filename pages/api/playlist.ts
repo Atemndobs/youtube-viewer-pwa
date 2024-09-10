@@ -3,9 +3,8 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { appwriteDatabase, appwriteClient } from "../../src/utils/appwrite/client"; // Adjust path as necessary
 import { DATABASE_ID, COLLECTION_ID } from "../../src/utils/constants";
-import { isValidYouTubeUrl } from "../../src/utils";
+import { getYouTubeVideoTitle, isValidYouTubeUrl } from "../../src/utils";
 import usePlaylistStore from "../../src/store/playlistStore";
-
 import { Query } from "appwrite";
 
 
@@ -28,10 +27,10 @@ export default async function handler(
     if (req.method === "GET") {
       const deviceId = req.headers["device-id"] as string;
       console.log("===================STARTING GET REQUEST=====================");
-      
-      console.log({deviceId});
 
-      
+      console.log({ deviceId });
+
+
       if (!deviceId) {
         return res.status(400).json({ error: "Device ID is required." });
       }
@@ -39,11 +38,17 @@ export default async function handler(
       const response = await db.listDocuments(DATABASE_ID, COLLECTION_ID, [
         Query.equal('deviceId', deviceId)
       ]);
-      
 
-      const playlist = response.documents.map((doc) => doc.url);
+
+      // const playlist = response.documents.map((doc) => doc.url);
       // console.log({ playlist });
-      
+
+
+      // Map over the documents to return both URL and title
+      const playlist = response.documents.map((doc) => ({
+        url: doc.url,
+        title: doc.title,  // Assuming 'title' field exists in your Appwrite collection
+      }));
 
       return res.status(200).json({ playlist });
     }
@@ -63,7 +68,8 @@ export default async function handler(
         for (const doc of response.documents) {
           await db.deleteDocument(DATABASE_ID, COLLECTION_ID, doc.$id);
         }
-        
+        console.log("Playlist cleared");
+
         playlistStore.clearPlaylist();
         return res.status(200).json({
           message: "Playlist cleared",
@@ -89,6 +95,12 @@ export default async function handler(
         await db.deleteDocument(DATABASE_ID, COLLECTION_ID, response.documents[0].$id);
         playlistStore.removePlaylist(url);
 
+        console.log({
+          "message": "URL removed from playlist",
+          url,
+          deviceId
+        });
+
         return res.status(200).json({
           message: "URL removed from playlist",
           playlist: playlistStore.playlist,
@@ -100,37 +112,79 @@ export default async function handler(
         if (!isValidYouTubeUrl(url)) {
           return res.status(400).json({ error: "Invalid YouTube URL" });
         }
-
-        const response = await db.listDocuments(DATABASE_ID, COLLECTION_ID, [
+      
+        console.log("____________Adding URL to playlist__________________");
+      
+        // Get the video title (which could be null)
+        const title = await getYouTubeVideoTitle(url);
+      
+        // Ensure title is a string, use a fallback if null
+        const safeTitle = title || "Unknown Title";
+      
+        console.log('TITLE URL================');
+        console.log({ safeTitle });
+      
+        const queries = [
           Query.equal('deviceId', deviceId),
-          Query.equal('url', url)
-        ]);
-
+          Query.equal('url', url),
+        ];
+      
+        // Only add the title query if the title is not null
+        if (safeTitle !== "Unknown Title") {
+          queries.push(Query.equal('title', safeTitle));
+        }
+      
+        const response = await db.listDocuments(DATABASE_ID, COLLECTION_ID, queries);
+      
         if (response.documents.length > 0) {
+          console.log("URL already exists");
           return res.status(200).json({
             message: "URL already in playlist",
             playlist: playlistStore.playlist,
           });
         }
+      
 
         await db.createDocument(DATABASE_ID, COLLECTION_ID, 'unique()', {
           url,
-          deviceId
+          deviceId,
+          title
         });
 
-        playlistStore.addToPlaylist(url);
 
+        // Add to playlist store with the safe title
+        playlistStore.addToPlaylist({ url, title: safeTitle });
+      
+        console.log({
+          message: "URL added to playlist",
+          url,
+          deviceId,
+          title: safeTitle,
+        });
+      
         const updatedResponse = await db.listDocuments(DATABASE_ID, COLLECTION_ID, [
-          Query.equal('deviceId', deviceId)
+          Query.equal('deviceId', deviceId),
         ]);
+      
+        const newPlaylist = updatedResponse.documents.map((doc) => {
+          return { url: doc.url, title: doc.title };
+        })
 
+        console.log("Updated Response", updatedResponse);
+        
+
+        console.log('NEW PLAYLIST -----');
+        console.log(newPlaylist);
+        
+        
         return res.status(200).json({
           message: "URL added to playlist",
-          playlist: updatedResponse.documents.map((doc) => doc.url),
+          playlist: newPlaylist
         });
       } else {
         return res.status(400).json({ error: "URL is required for add action" });
       }
+      
     }
 
     // // Method not allowed
