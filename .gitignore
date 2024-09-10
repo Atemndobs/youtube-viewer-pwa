@@ -17,3 +17,4 @@ pages/api/add-to-playlist.ts
 appwrite-docker-compose.yml
 appwrite.env
 /playlist-collection
+yt_bk_

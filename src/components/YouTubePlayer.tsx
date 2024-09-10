@@ -352,12 +352,12 @@ const YouTubePlayer: React.FC = () => {
           />
 
 
-  {/* Conditionally render the Add to Playlist button */}
-  {inputUrl.trim() !== '' && (
-    <Button type="primary" onClick={addToPlaylist} className="mb-5">
-      Add to Playlist
-    </Button>
-  )}
+          {/* Conditionally render the Add to Playlist button */}
+          {inputUrl.trim() !== '' && (
+            <Button type="primary" onClick={addToPlaylist} className="mb-5">
+              Add to Playlist
+            </Button>
+          )}
 
           {videoId && (
             <div style={{ marginBottom: '20px', position: 'relative', paddingTop: '56.25%', background: 'black' }}>
@@ -388,7 +388,7 @@ const YouTubePlayer: React.FC = () => {
           <List
             header={
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'white' }}>
-                <span>Playlist</span>
+                <span>Watchlist</span>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                   <UnorderedListOutlined style={{ marginRight: '8px', color: 'white' }} />
                   <span style={{ color: 'white', marginRight: '16px' }}>{playlist.length}</span> {/* Playlist counter */}
@@ -400,7 +400,6 @@ const YouTubePlayer: React.FC = () => {
                     Clear
                   </Button>
                 </div>
-
               </div>
             }
             bordered
@@ -409,12 +408,14 @@ const YouTubePlayer: React.FC = () => {
             renderItem={({ url, title }) => (
               <List.Item
                 onClick={() => handlePlaylistItemClick(url)}
-                style={{ cursor: 'pointer', color: 'gray', display: 'flex', justifyContent: 'space-between' }}
+                style={{ cursor: 'pointer', color: 'gray', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
               >
-                <Button type="link" icon={<PlayCircleOutlined />} onClick={playVideo}>
-                  Play
-                </Button>
-                {title}
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <Button type="link" icon={<PlayCircleOutlined />} onClick={playVideo}>
+                    Play
+                  </Button>
+                  <span style={{ marginLeft: '8px', color: 'white' }}>{title}</span>
+                </div>
                 <Button
                   icon={<DeleteOutlined />}
                   onClick={(e) => {
@@ -424,8 +425,11 @@ const YouTubePlayer: React.FC = () => {
                   style={{ color: 'white', border: 'none', background: 'transparent' }}
                 />
               </List.Item>
+
             )}
           />
+
+          
         </Card>
       </Content>
     </Layout>
