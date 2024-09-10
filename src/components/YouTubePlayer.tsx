@@ -34,6 +34,22 @@ const YouTubePlayer: React.FC = () => {
 
   const validatedUrl = validateAndConvertYouTubeUrl(inputUrl);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
+  const playVideo = () => player?.playVideo();
+  const stopVideo = () => player?.stopVideo();
+  const rewindVideo = () => player?.seekTo((player?.getCurrentTime() || 0) - 10, true);
+  const forwardVideo = () => player?.seekTo((player?.getCurrentTime() || 0) + 10, true);
+
+  interface PlaylistPayload {
+    deviceId: string;
+    url: string;
+    title: string;
+  }
+
+  interface PlaylistItem {
+    url: string;
+    title: string;
+  }
+
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const url = e.target.value;
@@ -97,22 +113,6 @@ const YouTubePlayer: React.FC = () => {
     setPlayer(event.target);
     setIsPlayerReady(true);
   };
-
-  const playVideo = () => player?.playVideo();
-  const stopVideo = () => player?.stopVideo();
-  const rewindVideo = () => player?.seekTo((player?.getCurrentTime() || 0) - 10, true);
-  const forwardVideo = () => player?.seekTo((player?.getCurrentTime() || 0) + 10, true);
-
-  interface PlaylistPayload {
-    deviceId: string;
-    url: string;
-    title: string;
-  }
-
-  interface PlaylistItem {
-    url: string;
-    title: string;
-  }
 
   // Fetch playlist from SQLite on component mount
   useEffect(() => {
@@ -292,6 +292,7 @@ const YouTubePlayer: React.FC = () => {
       });
     }
   };
+
 
 
   return (

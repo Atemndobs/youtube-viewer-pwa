@@ -6,9 +6,7 @@ import "src/styles/global.css";
 
 function MyApp({ Component, pageProps }: AppProps): JSX.Element {
   return (
-    <Layout>
-      <Component {...pageProps} />
-    </Layout>
+    <Component {...pageProps} />
   );
 }
 
