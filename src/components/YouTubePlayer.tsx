@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import YouTube from 'react-youtube';
-import { Layout, Card, Input, Button, Space, Switch, List, notification } from 'antd';
-import { PlayCircleOutlined, StopOutlined, BackwardOutlined, ForwardOutlined, MinusCircleOutlined, DeleteOutlined, UnorderedListOutlined } from '@ant-design/icons';
+import { Avatar, Layout, Card, Input, Button, Space, Switch, List, notification } from 'antd';
+import { PlayCircleOutlined, StopOutlined, BackwardOutlined, ForwardOutlined, MinusCircleOutlined, DeleteOutlined, UnorderedListOutlined, UserOutlined, MoonOutlined, SunOutlined } from '@ant-design/icons';
 import { getYouTubeVideoTitle, isValidYouTubeUrl, validateAndConvertYouTubeUrl } from '../utils';
 import { appwriteClient, appwriteDatabase } from '../utils/appwrite/client'; // Import your Appwrite client setup
 import { Query } from 'appwrite'; // Adjust according to your SDK version and types
@@ -303,27 +303,40 @@ const YouTubePlayer: React.FC = () => {
           bordered={false}
           style={{ width: '100%', maxWidth: '800px', background: isDarkMode ? 'black' : '#ffffff' }}
           extra={
-            <div className="mb-4 flex items-center">
-              <Switch
-                checked={isDarkMode}
-                onChange={() => setIsDarkMode(prev => !prev)}
-                className="mr-2"
-              />
-              <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
-                Dark Mode
-              </span>
+            <div className="mb-4 flex items-center space-x-4">
+              {/* Dark Mode Toggle */}
+              <div className="flex items-center">
+                {isDarkMode ? <MoonOutlined className="mr-2 text-gray-300" /> : <SunOutlined className="mr-2 text-gray-600" />}
+                <Switch
+                  checked={isDarkMode}
+                  onChange={() => setIsDarkMode(prev => !prev)}
+                  className="mr-2"
+                />
+                {/* <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
+                  Dark Mode
+                </span> */}
+              </div>
+
+
+              {/* Autoplay Toggle */}
+              <div className="flex items-center">
+                <Switch
+                  checked={autoPlay}
+                  onChange={() => setAutoPlay(prev => !prev)}
+                  className="mr-2"
+                />
+                <span className="text-gray-400">Autoplay</span>
+              </div>
+        
+              {/* User Info with Icon  */}
+              <div className="flex items-center">
+                <Avatar icon={<UserOutlined />} className="mr-2" />
+                <span className="text-gray-400">{deviceId}</span>
+                {/* <span className="text-gray-400">User: {deviceId}</span> */}
+              </div>  
             </div>
           }
         >
-
-          <div className="mb-4 flex items-center">
-            <Switch
-              checked={autoPlay}
-              onChange={() => setAutoPlay(prev => !prev)}
-              className="mr-2"
-            />
-            <span className="text-gray-400">Autoplay</span>
-          </div>
 
           <Input
             placeholder="Enter YouTube video or playlist URL"
@@ -337,9 +350,14 @@ const YouTubePlayer: React.FC = () => {
             }}
             className="mb-5 bg-gray-400"
           />
-          <Button type="primary" onClick={addToPlaylist} className="mb-5">
-            Add to Playlist
-          </Button>
+
+
+  {/* Conditionally render the Add to Playlist button */}
+  {inputUrl.trim() !== '' && (
+    <Button type="primary" onClick={addToPlaylist} className="mb-5">
+      Add to Playlist
+    </Button>
+  )}
 
           {videoId && (
             <div style={{ marginBottom: '20px', position: 'relative', paddingTop: '56.25%', background: 'black' }}>
