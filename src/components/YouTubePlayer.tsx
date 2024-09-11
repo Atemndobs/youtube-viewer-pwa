@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import YouTube from 'react-youtube';
-import { Avatar, Layout, Card, Input, Button, Space, Switch, List, notification } from 'antd';
+import { Avatar, Layout, Card, Input, Button, Space, Switch, List, notification, Pagination } from 'antd';
 import { PlayCircleOutlined, StopOutlined, BackwardOutlined, ForwardOutlined, MinusCircleOutlined, DeleteOutlined, UnorderedListOutlined, UserOutlined, MoonOutlined, SunOutlined, PlusOutlined } from '@ant-design/icons';
 import { getYouTubePlaylistVideos, getYouTubeVideoTitle, isValidYouTubeUrl, validateAndConvertYouTubeUrl } from '../utils';
 import { appwriteClient, appwriteDatabase } from '../utils/appwrite/client'; // Import your Appwrite client setup
@@ -24,6 +24,8 @@ const YouTubePlayer: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<PlaylistItem | null>(null);
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [folders, setFolders] = useState<string[]>(['Coding', 'Business', 'folder 3']);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(5); // Adjust as needed
 
   const generateDeviceId = () => {
     const newDeviceId = Math.random().toString(36).substring(2) + Date.now().toString(36);
@@ -503,6 +505,13 @@ const YouTubePlayer: React.FC = () => {
     showFolderSelectionModal();
   };
 
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedPlaylist = playlist.slice(startIndex, endIndex);
 
   return (
     <Layout>
@@ -617,7 +626,7 @@ const YouTubePlayer: React.FC = () => {
             }
             bordered
             style={{ marginTop: '20px', background: 'grrey' }}
-            dataSource={playlist}
+            dataSource={paginatedPlaylist}
             renderItem={({ url, title }) => (
               <List.Item
                 onClick={() => handlePlaylistItemClick(url)}
@@ -646,6 +655,13 @@ const YouTubePlayer: React.FC = () => {
               </List.Item>
 
             )}
+          />
+          <Pagination
+            current={currentPage}
+            onChange={handlePageChange}
+            total={playlist.length}
+            pageSize={itemsPerPage}
+            style={{ marginTop: '16px' }}
           />
         </Card>
       </Content>
