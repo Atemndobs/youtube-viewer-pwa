@@ -1,7 +1,7 @@
 // src/pages/api/playlist.ts
 
 import { NextApiRequest, NextApiResponse } from "next";
-import { appwriteDatabase, appwriteClient } from "../../src/utils/appwrite/client"; // Adjust path as necessary
+import { appwriteDatabase } from "../../src/utils/appwrite/client"; // Adjust path as necessary
 import { DATABASE_ID, COLLECTION_ID } from "../../src/utils/constants";
 import { getYouTubeVideoTitle, isValidYouTubeUrl } from "../../src/utils";
 import usePlaylistStore from "../../src/store/playlistStore";
@@ -69,6 +69,8 @@ export default async function handler(
           await db.deleteDocument(DATABASE_ID, COLLECTION_ID, doc.$id);
         }
         console.log("Playlist cleared");
+        console.log({ response });
+  
 
         playlistStore.clearPlaylist();
         return res.status(200).json({
@@ -193,5 +195,5 @@ export default async function handler(
     console.error("Database error:", error);
     return res.status(500).json({ error: "Database error" });
   }
-}
+};
 

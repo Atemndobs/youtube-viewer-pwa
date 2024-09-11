@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import YouTube from 'react-youtube';
 import { Avatar, Layout, Card, Input, Button, Space, Switch, List, notification } from 'antd';
-import { PlayCircleOutlined, StopOutlined, BackwardOutlined, ForwardOutlined, MinusCircleOutlined, DeleteOutlined, UnorderedListOutlined, UserOutlined, MoonOutlined, SunOutlined } from '@ant-design/icons';
-import { getYouTubeVideoTitle, isValidYouTubeUrl, validateAndConvertYouTubeUrl } from '../utils';
+import { PlayCircleOutlined, StopOutlined, BackwardOutlined, ForwardOutlined, MinusCircleOutlined, DeleteOutlined, UnorderedListOutlined, UserOutlined, MoonOutlined, SunOutlined, PlusOutlined } from '@ant-design/icons';
+import { getYouTubePlaylistVideos, getYouTubeVideoTitle, isValidYouTubeUrl, validateAndConvertYouTubeUrl } from '../utils';
 import { appwriteClient, appwriteDatabase } from '../utils/appwrite/client'; // Import your Appwrite client setup
 import { Query } from 'appwrite'; // Adjust according to your SDK version and types
 import { COLLECTION_ID, DATABASE_ID } from 'src/utils/constants';
 import { title } from 'process';
+import LibrarySidebarComponent from './LibrarySidebarComponent';
 // import { useLocation } from 'react-router-dom'; // Add this if you're using react-router
 
 
@@ -19,7 +20,10 @@ const YouTubePlayer: React.FC = () => {
   const [autoPlay, setAutoPlay] = useState(false);
   const [inputUrl, setInputUrl] = useState('');
   const [playlist, setPlaylist] = useState<PlaylistItem[]>([]);
-  const [deviceId, setDeviceId] = useState<string>(''); 
+  const [deviceId, setDeviceId] = useState<string>('');
+  const [selectedItem, setSelectedItem] = useState<PlaylistItem | null>(null);
+  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+  const [folders, setFolders] = useState<string[]>(['Coding', 'Business', 'folder 3']);
 
   const generateDeviceId = () => {
     const newDeviceId = Math.random().toString(36).substring(2) + Date.now().toString(36);
@@ -76,7 +80,7 @@ const YouTubePlayer: React.FC = () => {
       urlDeviceId,
       storedDeviceId,
     });
-    
+
 
     if (urlDeviceId) {
       setDeviceId(urlDeviceId);
@@ -114,7 +118,7 @@ const YouTubePlayer: React.FC = () => {
     setIsPlayerReady(true);
   };
 
-  // Fetch playlist from SQLite on component mount
+  // Fetch playlist from Appwrite on component mount
   useEffect(() => {
     const deviceId = localStorage.getItem('deviceId') || generateDeviceId(); // Generate or retrieve deviceId
     appwriteClient.subscribe(`databases.${DATABASE_ID}.collections.${COLLECTION_ID}.documents`, response => {
@@ -126,18 +130,11 @@ const YouTubePlayer: React.FC = () => {
 
       if (deviceId === subscribedDeviceId && events.includes('databases.*.collections.*.documents.*.create')) {
         console.log('---------inside create event subscribe------------------');
-        console.log('Adding URL to playlist:', url);
-        console.log('Device ID:', deviceId);
-
         setPlaylist(prevPlaylist => {
           console.log('Previous playlist ==================');
           console.log({ prevPlaylist });
-
-          // Check if the URL already exists in the playlist by checking the URL field in the playlist objects
           if (!prevPlaylist.some(item => item.url === url)) {
-            // return [...prevPlaylist, { url, title }]; // Add the new video with both URL and title
             return [{ url, title }, ...prevPlaylist];
-
           }
           return prevPlaylist; // Return the playlist unchanged if the URL is already present
         });
@@ -159,7 +156,7 @@ const YouTubePlayer: React.FC = () => {
             console.log(data.playlist);
 
             const items = data.playlist.map((item: string) => item);
-            setPlaylist(items);
+            setPlaylist(items.reverse()); // Reverse the order of the playlist items to match the UI
           } else {
             notification.warning({
               message: 'No Playlist Found',
@@ -183,15 +180,73 @@ const YouTubePlayer: React.FC = () => {
     fetchPlaylist();
   }, []);
 
+  // // Add to Playlist function
+  // const addToPlaylist = async () => {
+  //   const validUrl = validateAndConvertYouTubeUrl(inputUrl);
+  //   console.log('VALID URL');
+
+  //   console.log(validUrl);
+
+
+  //   if (!validUrl) {
+  //     notification.error({
+  //       message: 'Invalid URL',
+  //       description: 'Please enter a valid YouTube video or playlist URL.',
+  //     });
+  //     return;
+  //   }
+
+  //   try {
+
+  //     const deviceId = localStorage.getItem('deviceId') || generateDeviceId();
+  //     try {
+  //       const response = await fetch('/api/playlist', {
+  //         method: 'POST',
+  //         headers: { 'Content-Type': 'application/json' },
+  //         body: JSON.stringify({ url: validatedUrl, action: 'add', deviceId }),
+  //       });
+  //       const data = await response.json();
+  //       if (response.ok) {
+  //         const title  = data.title;
+  //         console.log('title', title);
+
+  //         setPlaylist(prevPlaylist => {
+  //           if (!prevPlaylist.some(item => item.url === validUrl)) {
+  //             // return [...prevPlaylist, { url: validUrl, title }];
+  //             return [{ url: validUrl, title }, ...prevPlaylist];
+
+  //           }
+  //           return prevPlaylist;
+  //         });
+
+  //         console.log(playlist);
+
+  //       } else {
+  //         notification.error({ message: 'Error adding URL', description: data.error });
+  //       }
+  //     } catch (error) {
+  //       console.error('Failed to add URL to playlist:', error);
+  //       notification.error({
+  //         message: 'Error',
+  //         description: 'An error occurred while adding the URL to the playlist.',
+  //       });
+  //     }
+  //     setInputUrl(''); // Clear the input after adding
+  //   } catch (error) {
+  //     console.error('Error fetching video title:', error);
+  //     notification.error({
+  //       message: 'Error',
+  //       description: 'An error occurred while fetching the video title.',
+  //     });
+  //   }
+  // };
+
   // Add to Playlist function
   const addToPlaylist = async () => {
-    const validUrl = validateAndConvertYouTubeUrl(inputUrl);
-    console.log('VALID URL');
+    const validatedUrl = validateAndConvertYouTubeUrl(inputUrl); // Corrected name
+    console.log('VALID URL:', validatedUrl);
 
-    console.log(validUrl);
-
-
-    if (!validUrl) {
+    if (!validatedUrl) {
       notification.error({
         message: 'Invalid URL',
         description: 'Please enter a valid YouTube video or playlist URL.',
@@ -200,49 +255,87 @@ const YouTubePlayer: React.FC = () => {
     }
 
     try {
-
       const deviceId = localStorage.getItem('deviceId') || generateDeviceId();
-      try {
+
+      // Check if it's a playlist URL
+      const isPlaylistUrl = /list=/.test(validatedUrl);
+
+      // Fetch all videos if it's a playlist
+      if (isPlaylistUrl) {
+        const videoUrls = await getYouTubePlaylistVideos(validatedUrl);
+
+        if (!videoUrls) {
+          notification.error({
+            message: 'Error',
+            description: 'Failed to fetch videos from the playlist.',
+          });
+          return;
+        }
+
+        // Add each video URL to the playlist
+        videoUrls.forEach(async (url) => {
+          try {
+            const response = await fetch('/api/playlist', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ url, action: 'add', deviceId }),
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+              const { title } = data;
+              setPlaylist((prevPlaylist) => {
+                if (!prevPlaylist.some((item) => item.url === url)) {
+                  return [{ url, title }, ...prevPlaylist];
+                }
+                return prevPlaylist;
+              });
+            } else {
+              notification.error({
+                message: 'Error adding video',
+                description: data.error,
+              });
+            }
+          } catch (error) {
+            console.error('Failed to add video to playlist:', error);
+          }
+        });
+      } else {
+        // Handle single video URL case
         const response = await fetch('/api/playlist', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url: validatedUrl, action: 'add', deviceId }),
         });
-        const data = await response.json();
-        if (response.ok) {
-          const title  = data.title;
-          console.log('title', title);
-          
-          setPlaylist(prevPlaylist => {
-            if (!prevPlaylist.some(item => item.url === validUrl)) {
-              // return [...prevPlaylist, { url: validUrl, title }];
-              return [{ url: validUrl, title }, ...prevPlaylist];
 
+        const data = await response.json();
+
+        if (response.ok) {
+          const { title } = data;
+          setPlaylist((prevPlaylist) => {
+            if (!prevPlaylist.some((item) => item.url === validatedUrl)) {
+              return [{ url: validatedUrl, title }, ...prevPlaylist];
             }
             return prevPlaylist;
           });
-
-          console.log(playlist);
-
         } else {
-          notification.error({ message: 'Error adding URL', description: data.error });
+          notification.error({
+            message: 'Error adding URL',
+            description: data.error,
+          });
         }
-      } catch (error) {
-        console.error('Failed to add URL to playlist:', error);
-        notification.error({
-          message: 'Error',
-          description: 'An error occurred while adding the URL to the playlist.',
-        });
       }
+
       setInputUrl(''); // Clear the input after adding
     } catch (error) {
-      console.error('Error fetching video title:', error);
+      console.error('Error fetching video or playlist:', error);
       notification.error({
         message: 'Error',
-        description: 'An error occurred while fetching the video title.',
+        description: 'An error occurred while adding the URL to the playlist.',
       });
     }
   };
+
 
 
   const removeFromPlaylist = async (url: string) => {
@@ -279,6 +372,8 @@ const YouTubePlayer: React.FC = () => {
       });
 
       if (response.ok) {
+        console.log(response.json());
+
         // Clear the playlist by setting it to an empty array
         setPlaylist([]);
       } else {
@@ -294,10 +389,130 @@ const YouTubePlayer: React.FC = () => {
   };
 
 
+  // const addNewPlaylistFolder = async (folderName: string, urls: PlaylistItem[]) => {
+  //   const deviceId = localStorage.getItem('deviceId') || generateDeviceId();
+
+  //   try {
+  //     const response = await fetch('/api/folders', {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({ folderName, urls, deviceId }),
+  //     });
+
+  //     if (response.ok) {
+  //       notification.success({
+  //         message: 'Playlist Folder Added',
+  //         description: `The folder "${folderName}" was successfully created.`,
+  //       });
+  //     } else {
+  //       notification.error({ message: 'Error', description: 'Failed to add playlist folder.' });
+  //     }
+  //   } catch (error) {
+  //     console.error('Error adding playlist folder:', error);
+  //     notification.error({ message: 'Error', description: 'An error occurred while creating the playlist folder.' });
+  //   }
+  // };
+  const addNewPlaylistFolder = async (folderName: string, urls: PlaylistItem[]) => {
+    const deviceId = localStorage.getItem('deviceId') || generateDeviceId();
+  
+    try {
+      const response = await fetch('/api/folders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folderName, urls, deviceId }),
+      });
+  
+      if (response.ok) {
+        notification.success({
+          message: 'Folder Created',
+          description: `Successfully created the folder: ${folderName}`,
+        });
+        // Update folder state to include the new folder
+        setFolders(prevFolders => [...prevFolders, folderName]);
+      } else {
+        const data = await response.json();
+        notification.error({
+          message: 'Error',
+          description: `Failed to create folder: ${data.error}`,
+        });
+      }
+    } catch (error) {
+      console.error('Error creating playlist folder:', error);
+      notification.error({
+        message: 'Error',
+        description: 'An error occurred while creating the playlist folder.',
+      });
+    }
+  };
+  
+
+
+  const loadPlaylistFromFolder = async (folderName: string) => {
+    const deviceId = localStorage.getItem('deviceId') || generateDeviceId();
+
+    try {
+      const response = await fetch(`/api/folders?folderName=${folderName}&deviceId=${deviceId}`, {
+        method: 'GET',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const items = data.urls.map((item: string) => item);
+        setPlaylist(items); // Load the playlist
+      } else {
+        notification.error({ message: 'Error', description: 'Failed to load playlist from folder.' });
+      }
+    } catch (error) {
+      console.error('Failed to load playlist:', error);
+      notification.error({ message: 'Error', description: 'An error occurred while loading the playlist.' });
+    }
+  };
+
+  const addItemToFolder = async (folderName: string, item: PlaylistItem) => {
+    const deviceId = localStorage.getItem('deviceId') || generateDeviceId();
+    try {
+      const response = await fetch('/api/folders/add-item', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folderName, item, deviceId }),
+      });
+
+      if (response.ok) {
+        notification.success({
+          message: 'Item Added',
+          description: `The item was successfully added to the folder "${folderName}".`,
+        });
+        loadPlaylistFromFolder(folderName); // Reload playlist to reflect changes
+      } else {
+        notification.error({ message: 'Error', description: 'Failed to add item to the folder.' });
+      }
+    } catch (error) {
+      console.error('Error adding item to folder:', error);
+      notification.error({ message: 'Error', description: 'An error occurred while adding the item to the folder.' });
+    }
+  };
+
+  const showFolderSelectionModal = () => {
+    console.log('showFolderSelectionModal');
+
+  };
+
+
+  const handleAddItemToFolder = (item: PlaylistItem) => {
+    setSelectedItem(item);
+    showFolderSelectionModal();
+  };
+
 
   return (
     <Layout>
+      {/* <LibrarySidebarComponent
+        folders={['Coding', 'Business', 'folder 3']}
+        onFolderClick={loadPlaylistFromFolder}
+        onAddItemToFolder={addItemToFolder}
+      /> */}
       <Content style={{ padding: '50px', display: 'flex', justifyContent: 'center', background: isDarkMode ? 'black' : 'white' }}>
+
         <Card
           title="YouTube Video Viewer"
           bordered={false}
@@ -327,13 +542,13 @@ const YouTubePlayer: React.FC = () => {
                 />
                 <span className="text-gray-400">Autoplay</span>
               </div>
-        
+
               {/* User Info with Icon  */}
               <div className="flex items-center">
                 <Avatar icon={<UserOutlined />} className="mr-2" />
                 <span className="text-gray-400">{deviceId}</span>
                 {/* <span className="text-gray-400">User: {deviceId}</span> */}
-              </div>  
+              </div>
             </div>
           }
         >
@@ -369,7 +584,6 @@ const YouTubePlayer: React.FC = () => {
               />
             </div>
           )}
-
           <Space style={{ display: 'flex', justifyContent: 'space-around' }}>
             <Button type="link" icon={<PlayCircleOutlined />} onClick={playVideo}>
               Play
@@ -384,7 +598,6 @@ const YouTubePlayer: React.FC = () => {
               Forward 10s
             </Button>
           </Space>
-
           <List
             header={
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'white' }}>
@@ -410,6 +623,7 @@ const YouTubePlayer: React.FC = () => {
                 onClick={() => handlePlaylistItemClick(url)}
                 style={{ cursor: 'pointer', color: 'gray', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
               >
+
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                   <Button type="link" icon={<PlayCircleOutlined />} onClick={playVideo}>
                     Play
@@ -424,12 +638,15 @@ const YouTubePlayer: React.FC = () => {
                   }}
                   style={{ color: 'white', border: 'none', background: 'transparent' }}
                 />
+                {/* <Button
+                  icon={<PlusOutlined />}
+                  onClick={() => handleAddItemToFolder({ url, title })}
+                  style={{ color: 'white', border: 'none', background: 'transparent' }}
+                /> */}
               </List.Item>
 
             )}
           />
-
-          
         </Card>
       </Content>
     </Layout>
@@ -437,3 +654,4 @@ const YouTubePlayer: React.FC = () => {
 };
 
 export default YouTubePlayer;
+
