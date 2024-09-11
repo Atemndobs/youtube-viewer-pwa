@@ -26,6 +26,8 @@ const YouTubePlayer: React.FC = () => {
   const [folders, setFolders] = useState<string[]>(['Coding', 'Business', 'folder 3']);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5); // Adjust as needed
+  const [isLoading, setIsLoading] = useState(false); // State for loading indicator
+  const [hasMore, setHasMore] = useState(true); // State for "Load More" button
 
   const generateDeviceId = () => {
     const newDeviceId = Math.random().toString(36).substring(2) + Date.now().toString(36);
@@ -509,6 +511,31 @@ const YouTubePlayer: React.FC = () => {
     setCurrentPage(page);
   };
 
+  const loadMore = async () => {
+    setIsLoading(true);
+    try {
+      const deviceId = localStorage.getItem('deviceId') || generateDeviceId();
+      const response = await fetch('/api/playlist', {
+        method: 'GET',
+        headers: { 'device-id': deviceId },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const newItems = data.playlist.map((item: string) => item);
+        setPlaylist(prevPlaylist => [...prevPlaylist, ...newItems]);
+        setHasMore(newItems.length > 0); // Check if there are more items to load
+      } else {
+        notification.error({ message: 'Error loading more items' });
+      }
+    } catch (error) {
+      console.error('Failed to load more items:', error);
+      notification.error({ message: 'Error', description: 'An error occurred while loading more items.' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const paginatedPlaylist = playlist.slice(startIndex, endIndex);
@@ -656,13 +683,11 @@ const YouTubePlayer: React.FC = () => {
 
             )}
           />
-          <Pagination
-            current={currentPage}
-            onChange={handlePageChange}
-            total={playlist.length}
-            pageSize={itemsPerPage}
-            style={{ marginTop: '16px' }}
-          />
+          {hasMore && (
+            <Button type="primary" onClick={loadMore} loading={isLoading} style={{ marginTop: '16px' }}>
+              Load More
+            </Button>
+          )}
         </Card>
       </Content>
     </Layout>
