@@ -688,12 +688,14 @@ const YouTubePlayer: React.FC = () => {
               Load More
             </Button>
           )} */}
-          <Pagination
-            current={currentPage}
-            onChange={handlePageChange}
-            pageSize={itemsPerPage}
-            total={playlist.length}
-          />
+          {paginatedPlaylist.length > 0 && (
+            <Pagination
+              current={currentPage}
+              onChange={handlePageChange}
+              pageSize={itemsPerPage}
+              total={playlist.length}
+            />
+          )}
         </Card>
       </Content>
     </Layout>
