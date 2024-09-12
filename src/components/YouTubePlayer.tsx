@@ -511,30 +511,30 @@ const YouTubePlayer: React.FC = () => {
     setCurrentPage(page);
   };
 
-  const loadMore = async () => {
-    setIsLoading(true);
-    try {
-      const deviceId = localStorage.getItem('deviceId') || generateDeviceId();
-      const response = await fetch('/api/playlist', {
-        method: 'GET',
-        headers: { 'device-id': deviceId },
-      });
+  // const loadMore = async () => {
+  //   setIsLoading(true);
+  //   try {
+  //     const deviceId = localStorage.getItem('deviceId') || generateDeviceId();
+  //     const response = await fetch('/api/playlist', {
+  //       method: 'GET',
+  //       headers: { 'device-id': deviceId },
+  //     });
 
-      if (response.ok) {
-        const data = await response.json();
-        const newItems = data.playlist.map((item: string) => item);
-        setPlaylist(prevPlaylist => [...prevPlaylist, ...newItems]);
-        setHasMore(newItems.length > 0); // Check if there are more items to load
-      } else {
-        notification.error({ message: 'Error loading more items' });
-      }
-    } catch (error) {
-      console.error('Failed to load more items:', error);
-      notification.error({ message: 'Error', description: 'An error occurred while loading more items.' });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  //     if (response.ok) {
+  //       const data = await response.json();
+  //       const newItems = data.playlist.map((item: string) => item);
+  //       setPlaylist(prevPlaylist => [...prevPlaylist, ...newItems]);
+  //       setHasMore(newItems.length > 0); // Check if there are more items to load
+  //     } else {
+  //       notification.error({ message: 'Error loading more items' });
+  //     }
+  //   } catch (error) {
+  //     console.error('Failed to load more items:', error);
+  //     notification.error({ message: 'Error', description: 'An error occurred while loading more items.' });
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
 
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
@@ -683,11 +683,17 @@ const YouTubePlayer: React.FC = () => {
 
             )}
           />
-          {hasMore && (
+          {/* {hasMore && (
             <Button type="primary" onClick={loadMore} loading={isLoading} style={{ marginTop: '16px' }}>
               Load More
             </Button>
-          )}
+          )} */}
+          <Pagination
+            current={currentPage}
+            onChange={handlePageChange}
+            pageSize={itemsPerPage}
+            total={playlist.length}
+          />
         </Card>
       </Content>
     </Layout>
