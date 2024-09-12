@@ -634,71 +634,71 @@ const YouTubePlayer: React.FC = () => {
               Forward 10s
             </Button>
           </Space>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <List
-              header={
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'white' }}>
-                  <span>Watchlist</span>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <UnorderedListOutlined style={{ marginRight: '8px', color: 'white' }} />
-                    <span style={{ color: 'white', marginRight: '16px' }}>{playlist.length}</span> {/* Playlist counter */}
-                    <Button
-                      icon={<MinusCircleOutlined />}
-                      onClick={clearPlaylist}
-                      style={{ color: 'white', border: 'none', background: 'transparent' }}
-                    >
-                      Clear
-                    </Button>
-                  </div>
-                </div>
-              }
-              bordered
-              style={{ marginTop: '20px', background: 'grrey' }}
-              dataSource={paginatedPlaylist}
-              renderItem={({ url, title }) => (
-                <List.Item
-                  onClick={() => handlePlaylistItemClick(url)}
-                  style={{ cursor: 'pointer', color: 'gray', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                >
-
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <Button type="link" icon={<PlayCircleOutlined />} onClick={playVideo}>
-                      Play
-                    </Button>
-                    <span style={{ marginLeft: '8px', color: 'white' }}>{title}</span>
-                  </div>
-                  <Button
-                    icon={<DeleteOutlined />}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeFromPlaylist(url);
-                    }}
-                    style={{ color: 'white', border: 'none', background: 'transparent' }}
-                  />
-                  {/* <Button
-                    icon={<PlusOutlined />}
-                    onClick={() => handleAddItemToFolder({ url, title })}
-                    style={{ color: 'white', border: 'none', background: 'transparent' }}
-                  /> */}
-                </List.Item>
-
-              )}
-            />
-            {/* {hasMore && (
-              <Button type="primary" onClick={loadMore} loading={isLoading} style={{ marginTop: '16px' }}>
-                Load More
-              </Button>
-            )} */}
-            {paginatedPlaylist.length > 0 && (
-              <Pagination
-                current={currentPage}
-                onChange={handlePageChange}
-                pageSize={itemsPerPage}
-                total={playlist.length}
-              />
-            )}
-          </div>
           <Card
+            bordered={false}
+            style={{ width: '100%', maxWidth: '800px', background: isDarkMode ? 'black' : '#ffffff', marginTop: '20px' }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <List
+                header={
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'white' }}>
+                    <span>Watchlist</span>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <UnorderedListOutlined style={{ marginRight: '8px', color: 'white' }} />
+                      <span style={{ color: 'white', marginRight: '16px' }}>{playlist.length}</span> {/* Playlist counter */}
+                      <Button
+                        icon={<MinusCircleOutlined />}
+                        onClick={clearPlaylist}
+                        style={{ color: 'white', border: 'none', background: 'transparent' }}
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                  </div>
+                }
+                bordered
+                style={{ marginTop: '20px', background: 'grrey' }}
+                dataSource={paginatedPlaylist}
+                renderItem={({ url, title }) => (
+                  <List.Item
+                    onClick={() => handlePlaylistItemClick(url)}
+                    style={{ cursor: 'pointer', color: 'gray', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                  >
+
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <Button type="link" icon={<PlayCircleOutlined />} onClick={playVideo}>
+                        Play
+                      </Button>
+                      <span style={{ marginLeft: '8px', color: 'white' }}>{title}</span>
+                    </div>
+                    <Button
+                      icon={<DeleteOutlined />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeFromPlaylist(url);
+                      }}
+                      style={{ color: 'white', border: 'none', background: 'transparent' }}
+                    />
+                    {/* <Button
+                      icon={<PlusOutlined />}
+                      onClick={() => handleAddItemToFolder({ url, title })}
+                      style={{ color: 'white', border: 'none', background: 'transparent' }}
+                    /> */}
+                  </List.Item>
+
+                )}
+              />
+              {paginatedPlaylist.length > 0 && (
+                <Pagination
+                  current={currentPage}
+                  onChange={handlePageChange}
+                  pageSize={itemsPerPage}
+                  total={playlist.length}
+                />
+              )}
+            </div>
+          </Card>
+          {/* <Card
             bordered={false}
             style={{ width: '100%', maxWidth: '800px', background: isDarkMode ? 'black' : '#ffffff', marginTop: '20px' }}
           >
@@ -707,7 +707,7 @@ const YouTubePlayer: React.FC = () => {
               onFolderClick={loadPlaylistFromFolder}
               onAddItemToFolder={addItemToFolder}
             /> */}
-          </Card>
+          {/* </Card> */}
         </Card>
       </Content>
     </Layout>
