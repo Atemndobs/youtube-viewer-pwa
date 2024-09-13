@@ -1,4 +1,3 @@
-
 "use client";
 
 // import { Account, Appwrite, Storage } from "@refinedev/appwrite";
