@@ -17,7 +17,7 @@ const YouTubePlayer: React.FC = () => {
   const [videoId, setVideoId] = useState('');
   const [player, setPlayer] = useState<YT.Player | null>(null);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
-  const [autoPlay, setAutoPlay] = useState(false);
+  const [autoPlay, setAutoPlay] = useState(true);
   const [inputUrl, setInputUrl] = useState('');
   const [playlist, setPlaylist] = useState<PlaylistItem[]>([]);
   const [deviceId, setDeviceId] = useState<string>('');
@@ -694,6 +694,7 @@ const YouTubePlayer: React.FC = () => {
               onChange={handlePageChange}
               pageSize={itemsPerPage}
               total={playlist.length}
+              
             />
           )}
         </Card>
