@@ -694,7 +694,13 @@ const YouTubePlayer: React.FC = () => {
               onChange={handlePageChange}
               pageSize={itemsPerPage}
               total={playlist.length}
-              
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                marginTop: '16px',
+                background: 'black',
+                color: 'white',
+              }}
             />
           )}
         </Card>
