@@ -698,8 +698,7 @@ const YouTubePlayer: React.FC = () => {
                 display: 'flex',
                 justifyContent: 'center',
                 marginTop: '16px',
-                background: 'black',
-                color: 'white',
+                fontSize: '12px',
               }}
             />
           )}
