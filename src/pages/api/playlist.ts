@@ -1,8 +1,8 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { appwriteDatabase } from "../../src/utils/appwrite/client"; // Adjust path as necessary
-import { DATABASE_ID, COLLECTION_ID } from "../../src/utils/constants";
-import { getYouTubeVideoTitle, isValidYouTubeUrl } from "../../src/utils";
-import usePlaylistStore from "../../src/store/playlistStore";
+import { appwriteDatabase } from "src/utils/appwrite/client"; // Adjust path as necessary
+import { DATABASE_ID, COLLECTION_ID } from "src/utils/constants";
+import { getYouTubeVideoTitle, isValidYouTubeUrl } from "src/utils";
+import usePlaylistStore from "src/store/playlistStore";
 import { Query } from "appwrite";
 
 

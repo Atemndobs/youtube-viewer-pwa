@@ -7,8 +7,6 @@ import {
   APPWRITE_JWT_KEY,
   APPWRITE_PROJECT,
   APPWRITE_URL,
-  COLLECTION_ID,
-  DATABASE_ID,
 } from "../constants";
 import Cookies from "js-cookie";
 
