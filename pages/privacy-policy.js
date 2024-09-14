@@ -9,32 +9,29 @@ const PrivacyPolicy = () => {
       </Head>
       <h1>Privacy Policy</h1>
       <p>
-        This Privacy Policy describes how your personal information is collected, used, and shared when you use the YouTube Playlist App.
+        This Privacy Policy outlines how the YouTube Playlist App collects, uses, and shares your personal information.
       </p>
       <h2>Information We Collect</h2>
-      <p>
-        We collect information that you provide to us directly, such as when you create an account or contact us. This information may include your name, email address, and other personal information.
-      </p>
-      <p>
-        We also collect information automatically when you use our app, such as your device type, operating system, IP address, and usage data.
-      </p>
+      <ul>
+        <li><strong>Information You Provide:</strong> We collect information you directly share, such as your name and email address when you create an account or contact us.</li>
+        <li><strong>Information We Collect Automatically:</strong> We also collect information automatically when you use our app, including your device type, operating system, IP address, and usage data.</li>
+      </ul>
       <h2>How We Use Your Information</h2>
       <p>
-        We use your information to provide and improve our app, to communicate with you, and to personalize your experience.
+        We use your information to:
       </p>
+      <ul>
+        <li>Provide and improve our app</li>
+        <li>Communicate with you</li>
+        <li>Personalize your experience</li>
+      </ul>
       <h2>Sharing Your Information</h2>
       <p>
-        We may share your information with third-party service providers who help us operate our app, such as analytics providers and cloud storage providers.
-      </p>
-      <p>
-        We may also share your information if required by law or to protect the rights, property, or safety of ourselves or others.
+        We may share your information with third-party service providers who assist us in operating our app, such as analytics providers and cloud storage providers. We may also share your information if required by law or to protect the rights, property, or safety of ourselves or others.
       </p>
       <h2>Your Choices</h2>
       <p>
-        You can choose not to provide us with certain information, but this may limit your ability to use our app.
-      </p>
-      <p>
-        You can also contact us to access, update, or delete your personal information.
+        You can choose not to provide us with certain information, but this may limit your ability to use our app. You can also contact us to access, update, or delete your personal information.
       </p>
       <h2>Children's Privacy</h2>
       <p>
