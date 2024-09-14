@@ -18,3 +18,5 @@ appwrite-docker-compose.yml
 appwrite.env
 /playlist-collection
 yt_bk_
+pages/pp.tsx
+src/components/Typ_bk

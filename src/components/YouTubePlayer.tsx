@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import YouTube from 'react-youtube';
 import { Avatar, Layout, Card, Input, Button, Space, Switch, List, notification, Pagination } from 'antd';
-import { PlayCircleOutlined, StopOutlined, BackwardOutlined, ForwardOutlined, MinusCircleOutlined, DeleteOutlined, UnorderedListOutlined, UserOutlined, MoonOutlined, SunOutlined, PlusOutlined } from '@ant-design/icons';
+import { PlayCircleOutlined, StopOutlined, BackwardOutlined, ForwardOutlined, MinusCircleOutlined, DeleteOutlined, UnorderedListOutlined, UserOutlined, MoonOutlined, SunOutlined, PlusOutlined, PlaySquareFilled } from '@ant-design/icons';
 import { getYouTubePlaylistVideos, getYouTubeVideoTitle, isValidYouTubeUrl, validateAndConvertYouTubeUrl } from '../utils';
 import { appwriteClient, appwriteDatabase } from '../utils/appwrite/client'; // Import your Appwrite client setup
-import { Query } from 'appwrite'; // Adjust according to your SDK version and types
 import { COLLECTION_ID, DATABASE_ID } from 'src/utils/constants';
-import { title } from 'process';
-import LibrarySidebarComponent from './LibrarySidebarComponent';
-// import { useLocation } from 'react-router-dom'; // Add this if you're using react-router
+import Link from 'next/link';
+
 
 
 const { Content } = Layout;
@@ -22,12 +20,9 @@ const YouTubePlayer: React.FC = () => {
   const [playlist, setPlaylist] = useState<PlaylistItem[]>([]);
   const [deviceId, setDeviceId] = useState<string>('');
   const [selectedItem, setSelectedItem] = useState<PlaylistItem | null>(null);
-  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [folders, setFolders] = useState<string[]>(['Coding', 'Business', 'folder 3']);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5); // Adjust as needed
-  const [isLoading, setIsLoading] = useState(false); // State for loading indicator
-  const [hasMore, setHasMore] = useState(true); // State for "Load More" button
 
   const generateDeviceId = () => {
     const newDeviceId = Math.random().toString(36).substring(2) + Date.now().toString(36);
@@ -79,11 +74,6 @@ const YouTubePlayer: React.FC = () => {
     // Check if deviceId is passed in URL or generate a new one
     const urlDeviceId = getDeviceIdFromUrl();
     const storedDeviceId = localStorage.getItem('deviceId');
-
-    console.log({
-      urlDeviceId,
-      storedDeviceId,
-    });
 
 
     if (urlDeviceId) {
@@ -183,67 +173,6 @@ const YouTubePlayer: React.FC = () => {
     };
     fetchPlaylist();
   }, []);
-
-  // // Add to Playlist function
-  // const addToPlaylist = async () => {
-  //   const validUrl = validateAndConvertYouTubeUrl(inputUrl);
-  //   console.log('VALID URL');
-
-  //   console.log(validUrl);
-
-
-  //   if (!validUrl) {
-  //     notification.error({
-  //       message: 'Invalid URL',
-  //       description: 'Please enter a valid YouTube video or playlist URL.',
-  //     });
-  //     return;
-  //   }
-
-  //   try {
-
-  //     const deviceId = localStorage.getItem('deviceId') || generateDeviceId();
-  //     try {
-  //       const response = await fetch('/api/playlist', {
-  //         method: 'POST',
-  //         headers: { 'Content-Type': 'application/json' },
-  //         body: JSON.stringify({ url: validatedUrl, action: 'add', deviceId }),
-  //       });
-  //       const data = await response.json();
-  //       if (response.ok) {
-  //         const title  = data.title;
-  //         console.log('title', title);
-
-  //         setPlaylist(prevPlaylist => {
-  //           if (!prevPlaylist.some(item => item.url === validUrl)) {
-  //             // return [...prevPlaylist, { url: validUrl, title }];
-  //             return [{ url: validUrl, title }, ...prevPlaylist];
-
-  //           }
-  //           return prevPlaylist;
-  //         });
-
-  //         console.log(playlist);
-
-  //       } else {
-  //         notification.error({ message: 'Error adding URL', description: data.error });
-  //       }
-  //     } catch (error) {
-  //       console.error('Failed to add URL to playlist:', error);
-  //       notification.error({
-  //         message: 'Error',
-  //         description: 'An error occurred while adding the URL to the playlist.',
-  //       });
-  //     }
-  //     setInputUrl(''); // Clear the input after adding
-  //   } catch (error) {
-  //     console.error('Error fetching video title:', error);
-  //     notification.error({
-  //       message: 'Error',
-  //       description: 'An error occurred while fetching the video title.',
-  //     });
-  //   }
-  // };
 
   // Add to Playlist function
   const addToPlaylist = async () => {
@@ -393,109 +322,6 @@ const YouTubePlayer: React.FC = () => {
   };
 
 
-  // const addNewPlaylistFolder = async (folderName: string, urls: PlaylistItem[]) => {
-  //   const deviceId = localStorage.getItem('deviceId') || generateDeviceId();
-
-  //   try {
-  //     const response = await fetch('/api/folders', {
-  //       method: 'POST',
-  //       headers: { 'Content-Type': 'application/json' },
-  //       body: JSON.stringify({ folderName, urls, deviceId }),
-  //     });
-
-  //     if (response.ok) {
-  //       notification.success({
-  //         message: 'Playlist Folder Added',
-  //         description: `The folder "${folderName}" was successfully created.`,
-  //       });
-  //     } else {
-  //       notification.error({ message: 'Error', description: 'Failed to add playlist folder.' });
-  //     }
-  //   } catch (error) {
-  //     console.error('Error adding playlist folder:', error);
-  //     notification.error({ message: 'Error', description: 'An error occurred while creating the playlist folder.' });
-  //   }
-  // };
-  const addNewPlaylistFolder = async (folderName: string, urls: PlaylistItem[]) => {
-    const deviceId = localStorage.getItem('deviceId') || generateDeviceId();
-  
-    try {
-      const response = await fetch('/api/folders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ folderName, urls, deviceId }),
-      });
-  
-      if (response.ok) {
-        notification.success({
-          message: 'Folder Created',
-          description: `Successfully created the folder: ${folderName}`,
-        });
-        // Update folder state to include the new folder
-        setFolders(prevFolders => [...prevFolders, folderName]);
-      } else {
-        const data = await response.json();
-        notification.error({
-          message: 'Error',
-          description: `Failed to create folder: ${data.error}`,
-        });
-      }
-    } catch (error) {
-      console.error('Error creating playlist folder:', error);
-      notification.error({
-        message: 'Error',
-        description: 'An error occurred while creating the playlist folder.',
-      });
-    }
-  };
-  
-
-
-  const loadPlaylistFromFolder = async (folderName: string) => {
-    const deviceId = localStorage.getItem('deviceId') || generateDeviceId();
-
-    try {
-      const response = await fetch(`/api/folders?folderName=${folderName}&deviceId=${deviceId}`, {
-        method: 'GET',
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const items = data.urls.map((item: string) => item);
-        setPlaylist(items); // Load the playlist
-      } else {
-        notification.error({ message: 'Error', description: 'Failed to load playlist from folder.' });
-      }
-    } catch (error) {
-      console.error('Failed to load playlist:', error);
-      notification.error({ message: 'Error', description: 'An error occurred while loading the playlist.' });
-    }
-  };
-
-  const addItemToFolder = async (folderName: string, item: PlaylistItem) => {
-    const deviceId = localStorage.getItem('deviceId') || generateDeviceId();
-    try {
-      const response = await fetch('/api/folders/add-item', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ folderName, item, deviceId }),
-      });
-
-      if (response.ok) {
-        notification.success({
-          message: 'Item Added',
-          description: `The item was successfully added to the folder "${folderName}".`,
-        });
-        loadPlaylistFromFolder(folderName); // Reload playlist to reflect changes
-      } else {
-        notification.error({ message: 'Error', description: 'Failed to add item to the folder.' });
-      }
-    } catch (error) {
-      console.error('Error adding item to folder:', error);
-      notification.error({ message: 'Error', description: 'An error occurred while adding the item to the folder.' });
-    }
-  };
-
   const showFolderSelectionModal = () => {
     console.log('showFolderSelectionModal');
 
@@ -511,42 +337,12 @@ const YouTubePlayer: React.FC = () => {
     setCurrentPage(page);
   };
 
-  // const loadMore = async () => {
-  //   setIsLoading(true);
-  //   try {
-  //     const deviceId = localStorage.getItem('deviceId') || generateDeviceId();
-  //     const response = await fetch('/api/playlist', {
-  //       method: 'GET',
-  //       headers: { 'device-id': deviceId },
-  //     });
-
-  //     if (response.ok) {
-  //       const data = await response.json();
-  //       const newItems = data.playlist.map((item: string) => item);
-  //       setPlaylist(prevPlaylist => [...prevPlaylist, ...newItems]);
-  //       setHasMore(newItems.length > 0); // Check if there are more items to load
-  //     } else {
-  //       notification.error({ message: 'Error loading more items' });
-  //     }
-  //   } catch (error) {
-  //     console.error('Failed to load more items:', error);
-  //     notification.error({ message: 'Error', description: 'An error occurred while loading more items.' });
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
-
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const paginatedPlaylist = playlist.slice(startIndex, endIndex);
 
   return (
     <Layout>
-      {/* <LibrarySidebarComponent
-        folders={['Coding', 'Business', 'folder 3']}
-        onFolderClick={loadPlaylistFromFolder}
-        onAddItemToFolder={addItemToFolder}
-      /> */}
       <Content style={{ padding: '50px', display: 'flex', justifyContent: 'center', background: isDarkMode ? 'black' : 'white' }}>
 
         <Card
@@ -557,22 +353,23 @@ const YouTubePlayer: React.FC = () => {
             <div className="mb-4 flex items-center space-x-4">
               {/* Dark Mode Toggle */}
               <div className="flex items-center">
-                {isDarkMode ? <MoonOutlined className="mr-2 text-gray-300" /> : <SunOutlined className="mr-2 text-gray-600" />}
+                {/* {isDarkMode ? <MoonOutlined className="mr-2 text-gray-300" /> : <SunOutlined className="mr-2 text-gray-600" />} */}
                 <Switch
+                  checkedChildren={<SunOutlined />}
+                  unCheckedChildren={<MoonOutlined />}
                   checked={isDarkMode}
-                  onChange={() => setIsDarkMode(prev => !prev)}
-                  className="mr-2"
+                  onChange={() => setIsDarkMode(!isDarkMode)}
                 />
-                {/* <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
-                  Dark Mode
-                </span> */}
               </div>
+
 
 
               {/* Autoplay Toggle */}
               <div className="flex items-center">
                 <Switch
                   checked={autoPlay}
+                  checkedChildren={<PlayCircleOutlined />}
+                  unCheckedChildren={<StopOutlined />}
                   onChange={() => setAutoPlay(prev => !prev)}
                   className="mr-2"
                 />
@@ -588,7 +385,7 @@ const YouTubePlayer: React.FC = () => {
             </div>
           }
         >
-
+            <Space direction="vertical" style={{ width: '100%' }}>
           <Input
             placeholder="Enter YouTube video or playlist URL"
             value={inputUrl}
@@ -674,21 +471,11 @@ const YouTubePlayer: React.FC = () => {
                   }}
                   style={{ color: 'white', border: 'none', background: 'transparent' }}
                 />
-                {/* <Button
-                  icon={<PlusOutlined />}
-                  onClick={() => handleAddItemToFolder({ url, title })}
-                  style={{ color: 'white', border: 'none', background: 'transparent' }}
-                /> */}
               </List.Item>
 
             )}
           />
-          {/* {hasMore && (
-            <Button type="primary" onClick={loadMore} loading={isLoading} style={{ marginTop: '16px' }}>
-              Load More
-            </Button>
-          )} */}
-          {paginatedPlaylist.length > 0 && (
+          {/* {paginatedPlaylist.length > 0 && (
             <Pagination
               current={currentPage}
               onChange={handlePageChange}
@@ -701,10 +488,92 @@ const YouTubePlayer: React.FC = () => {
                 fontSize: '12px',
               }}
             />
-          )}
+          )} */}
+              <Pagination
+                current={currentPage}
+                pageSize={itemsPerPage}
+                total={playlist.length}
+                // onChange={(page) => setCurrentPage(page)}
+                onChange={handlePageChange}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  marginTop: '16px',
+                  fontSize: '12px',
+                }}
+              />
+            </Space>
         </Card>
       </Content>
     </Layout>
+  
+  //   <Layout style={{ height: '100vh' }}>
+  //   <Content style={{ padding: '0 50px', marginTop: 64 }}>
+  //     <div className="site-layout-content">
+  //       <Card>
+  //         <Space direction="vertical" style={{ width: '100%' }}>
+  //           <YouTube
+  //             videoId={videoId}
+  //             opts={{
+  //               height: '390',
+  //               width: '640',
+  //               playerVars: { autoplay: 1 },
+  //             }}
+  //             onReady={onPlayerReady}
+  //           />
+  //           <Input
+  //             placeholder="Enter YouTube URL"
+  //             value={inputUrl}
+  //             onChange={handleInputChange}
+  //             style={{ width: '100%' }}
+  //           />
+  //           <Space>
+  //             <Button type="primary" onClick={addToPlaylist}>
+  //               Add to Playlist
+  //             </Button>
+  //             <Button type="danger" onClick={clearPlaylist}>
+  //               Clear Playlist
+  //             </Button>
+  //             <Switch
+  //               checkedChildren={<SunOutlined />}
+  //               unCheckedChildren={<MoonOutlined />}
+  //               checked={isDarkMode}
+  //               onChange={() => setIsDarkMode(!isDarkMode)}
+  //             />
+
+  //           </Space>
+  //           <List
+  //             header={<div>Playlist</div>}
+  //             bordered
+  //             dataSource={playlist}
+  //             renderItem={(item) => (
+  //               <List.Item
+  //                 actions={[
+  //                   <Button type="link" icon={<MinusCircleOutlined />} onClick={() => removeFromPlaylist(item.url)} />,
+  //                 ]}
+  //                 onClick={() => handlePlaylistItemClick(item.url)}
+  //               >
+  //                 {item.title || 'Unknown Title'}
+  //               </List.Item>
+  //             )}
+  //           />
+  //           <Pagination
+  //             current={currentPage}
+  //             pageSize={itemsPerPage}
+  //             total={playlist.length}
+  //             onChange={(page) => setCurrentPage(page)}
+  //           />
+  //         </Space>
+  //         {/* <Button type="link" style={{ float: 'right' }}>
+  //           <Link href="https://viewer.atemkeng.de/privacy-policy">
+  //             Privacy Policy
+  //           </Link>
+  //         </Button> */}
+  //       </Card>
+  //     </div>
+  //   </Content>
+  // </Layout>
+  
   );
 };
 
