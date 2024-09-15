@@ -136,43 +136,79 @@ const YouTubePlayer: React.FC = () => {
 
     })
 
-    const fetchPlaylist = async () => {
-      try {
-        const response = await fetch('/api/playlist', {
-          method: 'GET',
-          headers: { 'device-id': deviceId },
-        });
+    // const fetchPlaylist = async () => {
+    //   try {
+    //     const response = await fetch('/api/playlist', {
+    //       method: 'GET',
+    //       headers: { 'device-id': deviceId },
+    //     });
 
-        if (response.ok) {
-          const data = await response.json();
-          console.log('Fetched playlist from server:', data);
-          if (data.playlist) {
-            console.log(data.playlist);
+    //     if (response.ok) {
+    //       const data = await response.json();
+    //       console.log('Fetched playlist from server:', data);
+    //       if (data.playlist) {
+    //         console.log(data.playlist);
 
-            const items = data.playlist.map((item: string) => item);
-            setPlaylist(items.reverse()); // Reverse the order of the playlist items to match the UI
-          } else {
-            notification.warning({
-              message: 'No Playlist Found',
-              description: 'The playlist is currently empty.',
-            });
-          }
-        } else {
-          notification.error({
-            message: 'Error fetching playlist',
-            description: 'Failed to load the playlist from the server.' + deviceId,
-          });
-        }
-      } catch (error) {
-        console.error('Failed to fetch playlist:', error);
-        notification.error({
-          message: 'Error',
-          description: 'An error occurred while fetching the playlist.',
-        });
-      }
-    };
+    //         const items = data.playlist.map((item: string) => item);
+    //         setPlaylist(items.reverse()); // Reverse the order of the playlist items to match the UI
+    //       } else {
+    //         notification.warning({
+    //           message: 'No Playlist Found',
+    //           description: 'The playlist is currently empty.',
+    //         });
+    //       }
+    //     } else {
+    //       notification.error({
+    //         message: 'Error fetching playlist',
+    //         description: 'Failed to load the playlist from the server.' + deviceId,
+    //       });
+    //     }
+    //   } catch (error) {
+    //     console.error('Failed to fetch playlist:', error);
+    //     notification.error({
+    //       message: 'Error',
+    //       description: 'An error occurred while fetching the playlist.',
+    //     });
+    //   }
+    // };
     fetchPlaylist();
   }, []);
+
+  const fetchPlaylist = async () => {
+    const deviceId = localStorage.getItem('deviceId') || generateDeviceId();
+    try {
+      const response = await fetch('/api/playlist', {
+        method: 'GET',
+        headers: { 'device-id': deviceId },
+      });
+  
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Fetched playlist from server:', data);
+        if (data.playlist) {
+          const items = data.playlist.map((item: string) => item);
+          setPlaylist(items.reverse()); // Reverse the order of the playlist items to match the UI
+        } else {
+          notification.warning({
+            message: 'No Playlist Found',
+            description: 'The playlist is currently empty.',
+          });
+        }
+      } else {
+        notification.error({
+          message: 'Error fetching playlist',
+          description: 'Failed to load the playlist from the server.' + deviceId,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch playlist:', error);
+      notification.error({
+        message: 'Error',
+        description: 'An error occurred while fetching the playlist.',
+      });
+    }
+  };
+  
 
   // Add to Playlist function
   const addToPlaylist = async () => {
@@ -443,7 +479,6 @@ const YouTubePlayer: React.FC = () => {
                     onClick={fetchPlaylist}
                     style={{ color: 'white', border: 'none', background: 'transparent' }}
                   >
-                    Refresh
                   </Button>
                   <Button
                     icon={<MinusCircleOutlined />}
