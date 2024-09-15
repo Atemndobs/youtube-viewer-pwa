@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import YouTube from 'react-youtube';
 import { Avatar, Layout, Card, Input, Button, Space, Switch, List, notification, Pagination } from 'antd';
-import { PlayCircleOutlined, StopOutlined, BackwardOutlined, ForwardOutlined, MinusCircleOutlined, DeleteOutlined, UnorderedListOutlined, UserOutlined, MoonOutlined, SunOutlined, PlusOutlined, PlaySquareFilled } from '@ant-design/icons';
+import { PlayCircleOutlined, StopOutlined, BackwardOutlined, ForwardOutlined, MinusCircleOutlined, DeleteOutlined, UnorderedListOutlined, UserOutlined, MoonOutlined, SunOutlined, PlusOutlined, PlaySquareFilled, SyncOutlined } from '@ant-design/icons';
 import { getYouTubePlaylistVideos, getYouTubeVideoTitle, isValidYouTubeUrl, validateAndConvertYouTubeUrl } from '../utils';
 import { appwriteClient, appwriteDatabase } from '../utils/appwrite/client'; // Import your Appwrite client setup
 import { COLLECTION_ID, DATABASE_ID } from 'src/utils/constants';
@@ -438,6 +438,13 @@ const YouTubePlayer: React.FC = () => {
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                   <UnorderedListOutlined style={{ marginRight: '8px', color: 'white' }} />
                   <span style={{ color: 'white', marginRight: '16px' }}>{playlist.length}</span> {/* Playlist counter */}
+                  <Button
+                    icon={<SyncOutlined />}
+                    onClick={fetchPlaylist}
+                    style={{ color: 'white', border: 'none', background: 'transparent' }}
+                  >
+                    Refresh
+                  </Button>
                   <Button
                     icon={<MinusCircleOutlined />}
                     onClick={clearPlaylist}
