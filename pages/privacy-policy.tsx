@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, Layout, Typography } from 'antd';
 import { useRouter } from 'next/router';
-import { SunOutlined, MoonOutlined } from '@ant-design/icons';
+import { SunOutlined, MoonOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 
 const { Content } = Layout;
@@ -20,9 +20,7 @@ const PrivacyPolicy: React.FC = () => {
        <div className="p-4">
         {/* Back Button */}
         <Link href="/" className="text-blue-500 flex items-center mb-4">
-          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path>
-          </svg>
+          <ArrowLeftOutlined className="text-blue-500 mr-2" style={{ fontSize: '16px' }} />
           Back to Watchlist
         </Link>
 
