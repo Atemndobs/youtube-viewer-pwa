@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect } from 'react';
 import YouTube from 'react-youtube';
 import { Avatar, Layout, Card, Input, Button, Space, Switch, List, notification, Pagination } from 'antd';
@@ -5,7 +7,7 @@ import { PlayCircleOutlined, StopOutlined, BackwardOutlined, ForwardOutlined, Mi
 import { getYouTubePlaylistVideos, getYouTubeVideoTitle, isValidYouTubeUrl, validateAndConvertYouTubeUrl } from '../utils';
 import { appwriteClient, appwriteDatabase } from '../utils/appwrite/client'; // Import your Appwrite client setup
 import { COLLECTION_ID, DATABASE_ID } from 'src/utils/constants';
-import Link from 'next/link';
+
 
 
 
@@ -19,8 +21,8 @@ const YouTubePlayer: React.FC = () => {
   const [inputUrl, setInputUrl] = useState('');
   const [playlist, setPlaylist] = useState<PlaylistItem[]>([]);
   const [deviceId, setDeviceId] = useState<string>('');
-  const [selectedItem, setSelectedItem] = useState<PlaylistItem | null>(null);
-  const [folders, setFolders] = useState<string[]>(['Coding', 'Business', 'folder 3']);
+  // const [selectedItem, setSelectedItem] = useState<PlaylistItem | null>(null);
+  // const [folders, setFolders] = useState<string[]>(['Coding', 'Business', 'folder 3']);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5); // Adjust as needed
 
@@ -136,41 +138,6 @@ const YouTubePlayer: React.FC = () => {
 
     })
 
-    // const fetchPlaylist = async () => {
-    //   try {
-    //     const response = await fetch('/api/playlist', {
-    //       method: 'GET',
-    //       headers: { 'device-id': deviceId },
-    //     });
-
-    //     if (response.ok) {
-    //       const data = await response.json();
-    //       console.log('Fetched playlist from server:', data);
-    //       if (data.playlist) {
-    //         console.log(data.playlist);
-
-    //         const items = data.playlist.map((item: string) => item);
-    //         setPlaylist(items.reverse()); // Reverse the order of the playlist items to match the UI
-    //       } else {
-    //         notification.warning({
-    //           message: 'No Playlist Found',
-    //           description: 'The playlist is currently empty.',
-    //         });
-    //       }
-    //     } else {
-    //       notification.error({
-    //         message: 'Error fetching playlist',
-    //         description: 'Failed to load the playlist from the server.' + deviceId,
-    //       });
-    //     }
-    //   } catch (error) {
-    //     console.error('Failed to fetch playlist:', error);
-    //     notification.error({
-    //       message: 'Error',
-    //       description: 'An error occurred while fetching the playlist.',
-    //     });
-    //   }
-    // };
     fetchPlaylist();
   }, []);
 
@@ -208,7 +175,6 @@ const YouTubePlayer: React.FC = () => {
       });
     }
   };
-  
 
   // Add to Playlist function
   const addToPlaylist = async () => {
@@ -305,8 +271,6 @@ const YouTubePlayer: React.FC = () => {
     }
   };
 
-
-
   const removeFromPlaylist = async (url: string) => {
     const deviceId = localStorage.getItem('deviceId') || generateDeviceId();
     try {
@@ -357,18 +321,6 @@ const YouTubePlayer: React.FC = () => {
     }
   };
 
-
-  const showFolderSelectionModal = () => {
-    console.log('showFolderSelectionModal');
-
-  };
-
-
-  const handleAddItemToFolder = (item: PlaylistItem) => {
-    setSelectedItem(item);
-    showFolderSelectionModal();
-  };
-
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
@@ -389,7 +341,6 @@ const YouTubePlayer: React.FC = () => {
             <div className="mb-4 flex items-center space-x-4">
               {/* Dark Mode Toggle */}
               <div className="flex items-center">
-                {/* {isDarkMode ? <MoonOutlined className="mr-2 text-gray-300" /> : <SunOutlined className="mr-2 text-gray-600" />} */}
                 <Switch
                   checkedChildren={<SunOutlined />}
                   unCheckedChildren={<MoonOutlined />}
@@ -416,7 +367,6 @@ const YouTubePlayer: React.FC = () => {
               <div className="flex items-center">
                 <Avatar icon={<UserOutlined />} className="mr-2" />
                 <span className="text-gray-400">{deviceId}</span>
-                {/* <span className="text-gray-400">User: {deviceId}</span> */}
               </div>
             </div>
           }
@@ -517,25 +467,10 @@ const YouTubePlayer: React.FC = () => {
 
             )}
           />
-          {/* {paginatedPlaylist.length > 0 && (
-            <Pagination
-              current={currentPage}
-              onChange={handlePageChange}
-              pageSize={itemsPerPage}
-              total={playlist.length}
-              style={{
-                display: 'flex',
-                justifyContent: 'center',
-                marginTop: '16px',
-                fontSize: '12px',
-              }}
-            />
-          )} */}
               <Pagination
                 current={currentPage}
                 pageSize={itemsPerPage}
                 total={playlist.length}
-                // onChange={(page) => setCurrentPage(page)}
                 onChange={handlePageChange}
                 style={{
                   display: 'flex',
@@ -548,73 +483,6 @@ const YouTubePlayer: React.FC = () => {
         </Card>
       </Content>
     </Layout>
-  
-  //   <Layout style={{ height: '100vh' }}>
-  //   <Content style={{ padding: '0 50px', marginTop: 64 }}>
-  //     <div className="site-layout-content">
-  //       <Card>
-  //         <Space direction="vertical" style={{ width: '100%' }}>
-  //           <YouTube
-  //             videoId={videoId}
-  //             opts={{
-  //               height: '390',
-  //               width: '640',
-  //               playerVars: { autoplay: 1 },
-  //             }}
-  //             onReady={onPlayerReady}
-  //           />
-  //           <Input
-  //             placeholder="Enter YouTube URL"
-  //             value={inputUrl}
-  //             onChange={handleInputChange}
-  //             style={{ width: '100%' }}
-  //           />
-  //           <Space>
-  //             <Button type="primary" onClick={addToPlaylist}>
-  //               Add to Playlist
-  //             </Button>
-  //             <Button type="danger" onClick={clearPlaylist}>
-  //               Clear Playlist
-  //             </Button>
-  //             <Switch
-  //               checkedChildren={<SunOutlined />}
-  //               unCheckedChildren={<MoonOutlined />}
-  //               checked={isDarkMode}
-  //               onChange={() => setIsDarkMode(!isDarkMode)}
-  //             />
-
-  //           </Space>
-  //           <List
-  //             header={<div>Playlist</div>}
-  //             bordered
-  //             dataSource={playlist}
-  //             renderItem={(item) => (
-  //               <List.Item
-  //                 actions={[
-  //                   <Button type="link" icon={<MinusCircleOutlined />} onClick={() => removeFromPlaylist(item.url)} />,
-  //                 ]}
-  //                 onClick={() => handlePlaylistItemClick(item.url)}
-  //               >
-  //                 {item.title || 'Unknown Title'}
-  //               </List.Item>
-  //             )}
-  //           />
-  //           <Pagination
-  //             current={currentPage}
-  //             pageSize={itemsPerPage}
-  //             total={playlist.length}
-  //             onChange={(page) => setCurrentPage(page)}
-  //           />
-  //         </Space>
-  //         {/* <Button type="link" style={{ float: 'right' }}>
-  //           <Link href="https://viewer.atemkeng.de/privacy-policy">
-  //             Privacy Policy
-  //           </Link>
-  //         </Button> */}
-  //       </Card>
-  //     </div>
-  //   </Content>
-  // </Layout>
   
   );
 };
