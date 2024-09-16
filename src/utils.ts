@@ -37,6 +37,11 @@
 //   return null;
 // };
 
+
+
+const YOUTUBE_API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY || ''; // Ensure this is in your .env
+
+
 export const getYouTubeVideoTitle = async (url: string): Promise<string | null> => {
   const videoIdMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
 
@@ -76,8 +81,6 @@ export const getYouTubeVideoTitle = async (url: string): Promise<string | null> 
 };
 
 
-
-const YOUTUBE_API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY || ''; // Ensure this is in your .env
 
 export const isValidYouTubeUrl = (url: string): boolean => {
   const pattern = /^(https?:\/\/)?(www\.youtube\.com\/(watch\?v=[a-zA-Z0-9_-]{11}(&.*)?|playlist\?list=[a-zA-Z0-9_-]+)|youtu\.be\/[a-zA-Z0-9_-]{11}(\?.*)?)$/;

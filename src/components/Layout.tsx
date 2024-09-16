@@ -10,6 +10,7 @@ const { Content, Footer } = AntLayout;
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <AntLayout className="min-h-screen">
+      <script async src="https://cse.google.com/cse.js?cx=675971d1c62a24514"></script>
       <Content className="bg-black flex-grow">
         {children}
       </Content>

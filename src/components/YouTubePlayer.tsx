@@ -3,11 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import YouTube from 'react-youtube';
 import { Avatar, Layout, Card, Input, Button, Space, Switch, List, notification, Pagination } from 'antd';
-import { PlayCircleOutlined, StopOutlined, BackwardOutlined, ForwardOutlined, MinusCircleOutlined, DeleteOutlined, UnorderedListOutlined, UserOutlined, MoonOutlined, SunOutlined, PlusOutlined, PlaySquareFilled, SyncOutlined } from '@ant-design/icons';
+import { PlayCircleOutlined, StopOutlined, BackwardOutlined, ForwardOutlined, MinusCircleOutlined, DeleteOutlined, UnorderedListOutlined, UserOutlined, MoonOutlined, SunOutlined, PlusOutlined, PlaySquareFilled, SyncOutlined,  StepBackwardOutlined, StepForwardOutlined } from '@ant-design/icons';
 import { getYouTubePlaylistVideos, getYouTubeVideoTitle, isValidYouTubeUrl, validateAndConvertYouTubeUrl } from '../utils';
 import { appwriteClient, appwriteDatabase } from '../utils/appwrite/client'; // Import your Appwrite client setup
 import { COLLECTION_ID, DATABASE_ID } from 'src/utils/constants';
-
 
 
 
@@ -21,8 +20,6 @@ const YouTubePlayer: React.FC = () => {
   const [inputUrl, setInputUrl] = useState('');
   const [playlist, setPlaylist] = useState<PlaylistItem[]>([]);
   const [deviceId, setDeviceId] = useState<string>('');
-  // const [selectedItem, setSelectedItem] = useState<PlaylistItem | null>(null);
-  // const [folders, setFolders] = useState<string[]>(['Coding', 'Business', 'folder 3']);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5); // Adjust as needed
 
@@ -43,6 +40,10 @@ const YouTubePlayer: React.FC = () => {
   const stopVideo = () => player?.stopVideo();
   const rewindVideo = () => player?.seekTo((player?.getCurrentTime() || 0) - 10, true);
   const forwardVideo = () => player?.seekTo((player?.getCurrentTime() || 0) + 10, true);
+  
+  const [currentIndex, setCurrentIndex] = useState(0); // Track the current video index
+
+
 
   interface PlaylistPayload {
     deviceId: string;
@@ -321,6 +322,41 @@ const YouTubePlayer: React.FC = () => {
     }
   };
 
+
+    // Function to skip to the next video in the playlist
+    const skipToNext = () => {
+      const nextIndex = currentIndex + 1;
+      if (nextIndex < playlist.length) {
+        setCurrentIndex(nextIndex);
+        playVideo();
+      } else {
+        console.log('No more videos in the playlist');
+      }
+    };
+  
+    // Function to skip to the previous video in the playlist
+    const skipToPrevious = () => {
+      setCurrentIndex((prevIndex) => {
+        if (prevIndex <= 0) {
+          notification.info({
+            message: "Start of Playlist",
+            description: "You're already at the first video.",
+          });
+          return prevIndex; // Keep the same index if it's the first video
+        }
+        const newIndex = prevIndex - 1;
+        const prevVideo = playlist[newIndex];
+        const id = prevVideo.url.split('v=')[1]?.split('&')[0];
+        setVideoId(id || '');
+        setIsPlayerReady(false);
+        if (autoPlay) {
+          setTimeout(() => player?.playVideo(), 500);
+        }
+        return newIndex; // Update to the new index
+      });
+    };
+    
+
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
@@ -332,7 +368,6 @@ const YouTubePlayer: React.FC = () => {
   return (
     <Layout>
       <Content style={{ padding: '50px', display: 'flex', justifyContent: 'center', background: isDarkMode ? 'black' : 'white' }}>
-
         <Card
           title="YouTube Video Viewer"
           bordered={false}
@@ -348,8 +383,6 @@ const YouTubePlayer: React.FC = () => {
                   onChange={() => setIsDarkMode(!isDarkMode)}
                 />
               </div>
-
-
 
               {/* Autoplay Toggle */}
               <div className="flex items-center">
@@ -401,22 +434,28 @@ const YouTubePlayer: React.FC = () => {
                 opts={{ width: '100%', height: '100%' }}
                 style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'black' }}
               />
-            </div>
-          )}
-          <Space style={{ display: 'flex', justifyContent: 'space-around' }}>
-            <Button type="link" icon={<PlayCircleOutlined />} onClick={playVideo}>
-              Play
-            </Button>
-            <Button type="link" icon={<StopOutlined />} onClick={stopVideo}>
-              Stop
-            </Button>
-            <Button type="link" icon={<BackwardOutlined />} onClick={rewindVideo}>
-              Rewind 10s
-            </Button>
-            <Button type="link" icon={<ForwardOutlined />} onClick={forwardVideo}>
-              Forward 10s
-            </Button>
-          </Space>
+              </div>
+            )}
+            <Space style={{ display: 'flex', justifyContent: 'space-around' }}>
+              <Button type="link" icon={<PlayCircleOutlined />} onClick={playVideo}>
+                Play
+              </Button>
+              <Button type="link" icon={<StopOutlined />} onClick={stopVideo}>
+                Stop
+              </Button>
+              <Button type="link" icon={<BackwardOutlined />} onClick={rewindVideo}>
+                RR 
+              </Button>
+              <Button type="link" icon={<ForwardOutlined />} onClick={forwardVideo}>
+                FF 
+              </Button>
+              <Button type="link" icon={<StepBackwardOutlined />} onClick={skipToPrevious}>
+                Prev
+              </Button>
+              <Button type="link" icon={<StepForwardOutlined />} onClick={skipToNext}>
+                Skip
+              </Button>
+            </Space>
           <List
             header={
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'white' }}>
@@ -453,7 +492,12 @@ const YouTubePlayer: React.FC = () => {
                   <Button type="link" icon={<PlayCircleOutlined />} onClick={playVideo}>
                     Play
                   </Button>
-                  <span style={{ marginLeft: '8px', color: 'white' }}>{title}</span>
+                  <span 
+                  style={{ marginLeft: '8px', color: isDarkMode ? 'white' : 'black',}} 
+                  onClick={playVideo} 
+                  >
+                    {title}
+                  </span>
                 </div>
                 <Button
                   icon={<DeleteOutlined />}
@@ -465,6 +509,31 @@ const YouTubePlayer: React.FC = () => {
                 />
               </List.Item>
 
+
+            //   <List.Item
+            //   actions={[
+            //     <Button
+            //       icon={<DeleteOutlined />}
+            //       danger
+            //       onClick={() => removeFromPlaylist(url)}
+            //     />,
+            //   ]}
+            // >
+            //   <List.Item.Meta
+            //     avatar={<Avatar icon={<PlayCircleOutlined />} />}
+            //     title={
+            //       <span
+            //         style={{
+            //           color: isDarkMode ? '#ffffff' : '#000000', // Change color based on dark mode
+            //         }}
+            //         onClick={() => handlePlaylistItemClick(url)}
+            //       >
+            //         {title}
+            //       </span>
+            //     }
+            //     description={url}
+            //   />
+            // </List.Item>
             )}
           />
               <Pagination
