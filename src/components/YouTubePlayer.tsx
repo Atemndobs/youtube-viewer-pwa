@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import YouTube from 'react-youtube';
 import { Avatar, Layout, Card, Input, Button, Space, Switch, List, notification, Pagination } from 'antd';
@@ -365,6 +363,13 @@ const YouTubePlayer: React.FC = () => {
   const endIndex = startIndex + itemsPerPage;
   const paginatedPlaylist = playlist.slice(startIndex, endIndex);
 
+  // Function to handle the end of a video
+  const onPlayerStateChange = (event: YT.PlayerEvent) => {
+    if (event.data === YT.PlayerState.ENDED && playlist.length > 0) {
+      skipToNext();
+    }
+  };
+
   return (
     <Layout>
       <Content style={{ padding: '50px', display: 'flex', justifyContent: 'center', background: isDarkMode ? 'black' : 'white' }}>
@@ -433,6 +438,7 @@ const YouTubePlayer: React.FC = () => {
                 onReady={onPlayerReady}
                 opts={{ width: '100%', height: '100%' }}
                 style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'black' }}
+                onStateChange={onPlayerStateChange} // Add onStateChange handler
               />
               </div>
             )}
