@@ -326,7 +326,13 @@ const YouTubePlayer: React.FC = () => {
       const nextIndex = currentIndex + 1;
       if (nextIndex < playlist.length) {
         setCurrentIndex(nextIndex);
-        playVideo();
+        const nextVideo = playlist[nextIndex];
+        const id = nextVideo.url.split('v=')[1]?.split('&')[0];
+        setVideoId(id || '');
+        setIsPlayerReady(false);
+        if (autoPlay) {
+          setTimeout(() => player?.playVideo(), 500);
+        }
       } else {
         console.log('No more videos in the playlist');
       }
