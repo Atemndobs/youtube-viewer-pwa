@@ -369,12 +369,15 @@ const YouTubePlayer: React.FC = () => {
   const endIndex = startIndex + itemsPerPage;
   const paginatedPlaylist = playlist.slice(startIndex, endIndex);
 
-  // Function to handle the end of a video
-  const onPlayerStateChange = (event: YT.PlayerEvent) => {
-    if (event.data === YT.PlayerState.ENDED && playlist.length > 0) {
-      skipToNext();
-    }
-  };
+// Function to handle the end of a video
+const onPlayerStateChange = (event: YT.OnStateChangeEvent) => {
+  if (event.data === YT.PlayerState.ENDED && playlist.length > 0) {
+    skipToNext();
+  }
+};
+
+
+
 
   return (
     <Layout>
@@ -517,7 +520,7 @@ const YouTubePlayer: React.FC = () => {
                     e.stopPropagation();
                     removeFromPlaylist(url);
                   }}
-                  style={{ color: 'white', border: 'none', background: 'transparent' }}
+                  style={{ color: isDarkMode ? 'white' : 'black', border: 'none', background: 'transparent' }}
                 />
               </List.Item>
 
