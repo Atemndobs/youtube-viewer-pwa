@@ -1,5 +1,5 @@
 // src/components/YouTubePlayer.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import YouTube from 'react-youtube';
 import { Avatar, Layout, Card, Input, Button, Space, Switch, List, notification, Pagination } from 'antd';
 import {
@@ -19,6 +19,7 @@ import {
 } from '@ant-design/icons';
 import { getYouTubePlaylistVideos, isValidYouTubeUrl, validateAndConvertYouTubeUrl, generateRandomUsername } from '../utils';
 import pb from '../utils/pocketbaseClient';
+import { ThemeContext } from '../context/ThemeContext';
 
 const { Content } = Layout;
 
@@ -32,20 +33,88 @@ const YouTubePlayer: React.FC = () => {
   const [deviceId, setDeviceId] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5); // Adjust as needed
+  const themeContext = useContext(ThemeContext);
+  const animalIcons = [
+    <span role="img" aria-label="monkey">🐒</span>,
+    <span role="img" aria-label="dog">🐕</span>,
+    <span role="img" aria-label="cat">🐈</span>,
+    <span role="img" aria-label="fox">🦊</span>,
+    <span role="img" aria-label="lion">🦁</span>,
+    <span role="img" aria-label="elephant">🐘</span>,
+    <span role="img" aria-label="panda">🐼</span>,
+    <span role="img" aria-label="tiger">🐅</span>,
+    <span role="img" aria-label="rabbit">🐇</span>,
+    <span role="img" aria-label="bear">🐻</span>,
+    <span role="img" aria-label="frog">🐸</span>,
+    <span role="img" aria-label="penguin">🐧</span>,
+    <span role="img" aria-label="koala">🐨</span>,
+    <span role="img" aria-label="chicken">🐔</span>,
+    <span role="img" aria-label="snake">🐍</span>,
+    <span role="img" aria-label="hedgehog">🦔</span>,
+    <span role="img" aria-label="whale">🐳</span>,
+    <span role="img" aria-label="dolphin">🐬</span>,
+    <span role="img" aria-label="zebra">🦓</span>,
+    <span role="img" aria-label="giraffe">🦒</span>,
+    <span role="img" aria-label="deer">🦌</span>,
+    <span role="img" aria-label="turtle">🐢</span>,
+    <span role="img" aria-label="octopus">🐙</span>,
+    <span role="img" aria-label="scorpion">🦂</span>,
+    <span role="img" aria-label="bat">🦇</span>,
+    <span role="img" aria-label="squid">🦑</span>,
+    <span role="img" aria-label="kangaroo">🦘</span>,
+    <span role="img" aria-label="otter">🦦</span>,
+    <span role="img" aria-label="camel">🐫</span>,
+    <span role="img" aria-label="parrot">🦜</span>,
+    <span role="img" aria-label="fish">🐟</span>,
+    <span role="img" aria-label="ant">🐜</span>,
+    <span role="img" aria-label="bee">🐝</span>,
+    <span role="img" aria-label="butterfly">🦋</span>
+  ];
+
+
+  if (!themeContext) {
+    // Handle missing context error (e.g., if the provider is not found)
+    throw new Error('useContext must be used within a ThemeProvider');
+  }
+
+  const { isDarkMode, toggleTheme } = themeContext;
 
   const generateDeviceId = () => {
     const newDeviceId = generateRandomUsername()
     if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem('deviceId', newDeviceId );
+      window.localStorage.setItem('deviceId', newDeviceId);
     }
     return newDeviceId;
   };
 
+  const getAnimalIcon = () => {
+    return animalIcons[currentIconIndex];
+  };
+  const [currentIconIndex, setCurrentIconIndex] = useState<number>(0); // Default to 0
+
+  useEffect(() => {
+    const storedIndex = localStorage.getItem('currentIconIndex');
+    if (storedIndex) {
+      setCurrentIconIndex(parseInt(storedIndex));
+    }
+  }, []);
+
+
+
+  const handleAvatarClick = () => {
+    // Increment the index to change the icon
+    setCurrentIconIndex((prevIndex) => {
+      const newIndex = (prevIndex + 1) % animalIcons.length;
+      // Store the new index in local storage
+      localStorage.setItem('currentIconIndex', newIndex.toString());
+      return newIndex;
+    });
+  };
   const getUsername = () => {
     let parts = deviceId.split('-');  // Split the deviceId by '-'
     let username = parts.slice(0, 3).join('-');  // Join only the first three parts
     return username;
-}
+  }
 
 
   const getDeviceIdFromUrl = () => {
@@ -54,8 +123,6 @@ const YouTubePlayer: React.FC = () => {
   };
 
   const validatedUrl = validateAndConvertYouTubeUrl(inputUrl);
-  // Initialize isDarkMode from local storage
-  const [isDarkMode, setIsDarkMode] = useState(false); // Initialize to false (light mode)
 
   useEffect(() => {
     // Check if deviceId is passed in URL or generate a new one
@@ -71,10 +138,6 @@ const YouTubePlayer: React.FC = () => {
         const newDeviceId = generateDeviceId();
         setDeviceId(newDeviceId);
       }
-      // Get the stored dark mode preference
-      const storedDarkMode = window.localStorage.getItem('darkMode');
-      // Set the initial state of isDarkMode based on local storage
-      setIsDarkMode(storedDarkMode !== null ? JSON.parse(storedDarkMode) : true); // Default to true (dark mode) if not found
     }
   }, []);
 
@@ -82,7 +145,7 @@ const YouTubePlayer: React.FC = () => {
   const stopVideo = () => player?.stopVideo();
   const rewindVideo = () => player?.seekTo((player?.getCurrentTime() || 0) - 10, true);
   const forwardVideo = () => player?.seekTo((player?.getCurrentTime() || 0) + 10, true);
-  
+
   const [currentIndex, setCurrentIndex] = useState(0); // Track the current video index
 
   interface PlaylistItem {
@@ -132,7 +195,8 @@ const YouTubePlayer: React.FC = () => {
   };
 
   // Fetch playlist from PocketBase on component mount
-  useEffect(() => {``
+  useEffect(() => {
+    ``
     subscribeToPlaylist();
     fetchPlaylist();
   }, []);
@@ -145,7 +209,7 @@ const YouTubePlayer: React.FC = () => {
         deviceId,
         data
       });
-      
+
       if (data.action === 'create' && data.record.deviceId === deviceId) {
         // Add new item to the playlist
         const newItem: PlaylistItem = {
@@ -163,7 +227,7 @@ const YouTubePlayer: React.FC = () => {
         setPlaylist(prevPlaylist => prevPlaylist.filter(item => item.url !== data.record.url));
       } else if (data.action === 'update' && data.record.deviceId === deviceId) {
         // Update existing item in the playlist
-        setPlaylist(prevPlaylist => prevPlaylist.map(item => 
+        setPlaylist(prevPlaylist => prevPlaylist.map(item =>
           item.url === data.record.url ? { ...item, title: data.record.title } : item
         ));
       }
@@ -179,14 +243,14 @@ const YouTubePlayer: React.FC = () => {
         sort: '-created',
         filter: `deviceId = "${deviceId}"`
       });
-      
+
       const items = records.map(record => ({
         url: record.url,
         title: record.title,
         id: record._id,
         deviceId: record.deviceId
       }));
-      
+
       setPlaylist(items);
     } catch (error) {
       console.error('Failed to fetch playlist:', error);
@@ -404,12 +468,15 @@ const YouTubePlayer: React.FC = () => {
   }, [isDarkMode]);
 
   return (
-    <Layout>
-      <Content style={{ padding: '50px', display: 'flex', justifyContent: 'center', background: isDarkMode ? 'black' : 'white' }}>
+    <Layout style={{ background: isDarkMode ? 'black' : 'white' }}>
+      <Content style={{ padding: '50px', display: 'flex', justifyContent: 'center' }}>
         <Card
-          title="YouTube Video Viewer"
+          title="Watchlist"
           bordered={false}
-          style={{ width: '100%', maxWidth: '800px', background: isDarkMode ? 'black' : '#ffffff' }}
+          style={{
+            width: '100%', maxWidth: '800px',
+            color: isDarkMode ? 'white' : 'black', border: 'none', background: 'transparent'
+          }} // Set card background and text color
           extra={
             <div className="mb-4 flex items-center space-x-4">
               {/* Dark Mode Toggle */}
@@ -418,7 +485,7 @@ const YouTubePlayer: React.FC = () => {
                   checkedChildren={<SunOutlined />}
                   unCheckedChildren={<MoonOutlined />}
                   checked={isDarkMode}
-                  onChange={() => setIsDarkMode(!isDarkMode)}
+                  onChange={() => toggleTheme()}
                 />
               </div>
 
@@ -434,43 +501,55 @@ const YouTubePlayer: React.FC = () => {
                 <span className="text-gray-400">Autoplay</span>
               </div>
 
-              {/* User Info with Icon  */}
+              {/* User Info with Icon */}
               <div className="flex items-center">
-                <Avatar icon={<UserOutlined />} className="mr-2" />
+                <Avatar
+                  icon={getAnimalIcon()}
+                  className="mr-2"
+                  onClick={handleAvatarClick} // Attach click handler
+                />
                 <span className="text-gray-400">{getUsername()}</span>
               </div>
             </div>
           }
         >
-            <Space direction="vertical" style={{ width: '100%' }}>
-          <Input
-            placeholder="Enter YouTube video or playlist URL"
-            value={inputUrl}
-            onChange={handleInputChange}
-            onFocus={(e) => e.target.select()}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                addToPlaylist();
-              }
-            }}
-            className="mb-5 bg-gray-400"
-          />
-          {/* Conditionally render the Add to Playlist button */}
-          {inputUrl.trim() !== '' && (
-            <Button type="primary" onClick={addToPlaylist} className="mb-5">
-              Add to Playlist
-            </Button>
-          )}
+          <Space direction="vertical" style={{ width: '100%' }}>
+            {/* Flex container for the input and button */}
+            <div style={{ display: 'flex'}}>
+              {/* Add to Playlist button */}
+              {inputUrl.trim() !== '' && (
+                <Button type="primary" onClick={addToPlaylist} style={{ marginRight: '8px' }}>
+                  Add to Watchlist
+                </Button>
+              )}
 
-          {videoId && (
-            <div style={{ marginBottom: '20px', position: 'relative', paddingTop: '56.25%', background: 'black' }}>
-              <YouTube
-                videoId={videoId}
-                onReady={onPlayerReady}
-                opts={{ width: '100%', height: '100%' }}
-                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'black' }}
-                onStateChange={onPlayerStateChange} // Add onStateChange handler
+              {/* Input field */}
+              <Input
+                placeholder="Enter YouTube video or playlist URL"
+                value={inputUrl}
+                onChange={handleInputChange}
+                onFocus={(e) => e.target.select()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    addToPlaylist();
+                  }
+                }}
+                className="mb-5"
+                style={{ background: isDarkMode ? '#333' : '#f9f9f9', color: isDarkMode ? 'white' : 'black' }} // Input background and text color
               />
+            </div>
+
+            {videoId && (
+              // add video stats: when was uploaded, how many views and likes
+              <div style={{ marginBottom: '20px', position: 'relative', paddingTop: '56.25%', background: 'black' }}>
+                <YouTube
+                  videoId={videoId}
+                  onReady={onPlayerReady}
+                  opts={{ width: '100%', height: '100%' }}
+                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'black' }}
+                  onStateChange={onPlayerStateChange} // Add onStateChange handler
+                  
+                />
               </div>
             )}
             <Space style={{ display: 'flex', justifyContent: 'space-around' }}>
@@ -481,10 +560,10 @@ const YouTubePlayer: React.FC = () => {
                 Stop
               </Button>
               <Button type="link" icon={<BackwardOutlined />} onClick={rewindVideo}>
-                RR 
+                RR
               </Button>
               <Button type="link" icon={<ForwardOutlined />} onClick={forwardVideo}>
-                FF 
+                FF
               </Button>
               <Button type="link" icon={<StepBackwardOutlined />} onClick={skipToPrevious}>
                 Prev
@@ -493,78 +572,89 @@ const YouTubePlayer: React.FC = () => {
                 Skip
               </Button>
             </Space>
-          <List
-            header={
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'white' }}>
-                <span>Watchlist</span>
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <UnorderedListOutlined style={{ marginRight: '8px', color: 'white' }} />
-                  <span style={{ color: 'white', marginRight: '16px' }}>{playlist.length}</span>
-                  <Button
-                    icon={<SyncOutlined />}
-                    onClick={fetchPlaylist}
-                    style={{ color: 'white', border: 'none', background: 'transparent' }}
-                  >
-                  </Button>
-                  <Button
-                    icon={<MinusCircleOutlined />}
-                    onClick={clearPlaylist}
-                    style={{ color: 'white', border: 'none', background: 'transparent' }}
-                  >
-                    Clear
-                  </Button>
+            <List
+              header={
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: isDarkMode ? 'white' : 'black' }}>
+                  <span>Watchlist</span>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <UnorderedListOutlined style={{ marginRight: '8px', color: isDarkMode ? 'white' : 'black' }} />
+                    <span style={{ color: isDarkMode ? 'white' : 'black', marginRight: '16px' }}>{playlist.length}</span>
+                    <Button
+                      icon={<SyncOutlined />}
+                      onClick={fetchPlaylist}
+                      style={{ color: isDarkMode ? 'white' : 'black', border: 'none', background: 'transparent' }}
+                    />
+                    <Button
+                      icon={<MinusCircleOutlined />}
+                      onClick={clearPlaylist}
+                      style={{ border: 'none', background: 'transparent', color: isDarkMode ? 'white' : 'black' }}
+                    >
+                      Clear
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            }
-            bordered
-            style={{ marginTop: '20px', background: 'grrey' }}
-            dataSource={paginatedPlaylist}
-            renderItem={({ url, title }) => (
-              <List.Item
-                onClick={() => handlePlaylistItemClick(url)}
-                style={{ cursor: 'pointer', color: isDarkMode ? 'white' : 'gray', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-              >
-
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <Button type="link" icon={<PlayCircleOutlined />} onClick={playVideo}>
-                    Play
-                  </Button>
-                  <span 
-                  style={{ marginLeft: '8px', color: isDarkMode ? 'white' : 'black',}} 
-                  onClick={playVideo} 
-                  >
-                    {title}
-                  </span>
-                </div>
-                <Button
-                  icon={<DeleteOutlined />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeFromPlaylist(url);
+              }
+              bordered
+              dataSource={paginatedPlaylist}
+              renderItem={({ url, title }) => (
+                <List.Item
+                  onClick={() => handlePlaylistItemClick(url)}
+                  style={{
+                    cursor: 'pointer',
+                    color: isDarkMode ? 'white' : 'gray',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
                   }}
-                  style={{ color: isDarkMode ? 'white' : 'black', border: 'none', background: 'transparent' }}
-                />
-              </List.Item>
-            )}
-          />
-              <Pagination
-                current={currentPage}
-                pageSize={itemsPerPage}
-                total={playlist.length}
-                onChange={handlePageChange}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  marginTop: '16px',
-                  fontSize: '12px',
-                }}
-              />
-            </Space>
+                >
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <Button
+                      type="link"
+                      icon={<PlayCircleOutlined />}
+                      onClick={playVideo}
+                      style={{ color: isDarkMode ? 'white' : 'black' }}
+                    >
+                      Play
+                    </Button>
+                    <span
+                      style={{ marginLeft: '8px', color: isDarkMode ? 'white' : 'black' }}
+                      onClick={playVideo}
+                    >
+                      {title}
+                    </span>
+                  </div>
+                  <Button
+                    icon={<DeleteOutlined />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeFromPlaylist(url);
+                    }}
+                    style={{ color: isDarkMode ? 'white' : 'black', border: 'none', background: 'transparent' }}
+                  />
+                </List.Item>
+              )}
+            />
+
+            <Pagination
+              current={currentPage}
+              pageSize={itemsPerPage}
+              total={playlist.length}
+              onChange={handlePageChange}
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                marginTop: '16px',
+                fontSize: '12px',
+              }}
+            />
+          </Space>
         </Card>
+
       </Content>
     </Layout>
-  
   );
+
+
 };
 
 export default YouTubePlayer;
