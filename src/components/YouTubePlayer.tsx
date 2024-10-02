@@ -149,12 +149,10 @@ const YouTubePlayer: React.FC = () => {
   const stopVideo = () => player?.stopVideo();
   const rewindVideo = () => player?.seekTo((player?.getCurrentTime() || 0) - 10, true);
   const forwardVideo = () => player?.seekTo((player?.getCurrentTime() || 0) + 10, true);
-  const [currentVideo, setCurrentVideo] = useState<PlaylistItem | null>(null);
-  const [currentIndex, setCurrentIndex] = useState(0); // Track the current video index
-
-
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    
+    const url = e.target.value;
+    setInputUrl(url.trim());
     const url = e.target.value;
     setInputUrl(url.trim());
 
@@ -180,17 +178,34 @@ const YouTubePlayer: React.FC = () => {
     return () => clearTimeout(timer);
   }, [videoId, isPlayerReady, player, autoPlay]);
 
-  const handlePlaylistItemClick = (url: string) => {
-    const id = url.split('v=')[1]?.split('&')[0];
+    if (isValidYouTubeUrl(url)) {
+      const id = url.includes('list=') ? '' : url.split('v=')[1]?.split('&')[0];
+      setVideoId(id || '');
+      setIsPlayerReady(false);
+    } else {
+      notification.error({
+        message: 'Invalid URL',
+        description: 'Please enter a valid YouTube URL.',
+      });
+    }
+  };
+
+  const setCurrentVideo = (video: PlaylistItem | null) => {
+    setCurrentVideo(video);
+  };
+
+  const handlePlaylistItemClick = (video: PlaylistItem) => {
+    setCurrentVideo(video);
+    const id = video.url.split('v=')[1]?.split('&')[0];
     setVideoId(id || '');
-    setInputUrl(url);
+    setInputUrl(video.url);
     setIsPlayerReady(false);
     if (autoPlay) {
       setTimeout(() => player?.playVideo(), 500);
     }
   };
 
-  const onPlayerReady = (event: { target: YT.Player }) => {
+  const onPlayerReady = (event: { target: YT.Player }) => {    
     setPlayer(event.target);
     setIsPlayerReady(true);
   };
@@ -613,9 +628,9 @@ const YouTubePlayer: React.FC = () => {
               }
               bordered
               dataSource={paginatedPlaylist}
-              renderItem={({ url, title, publishedAt, views, likes }) => (
+              renderItem={(video: PlaylistItem) => (
                 <List.Item
-                  onClick={() => handlePlaylistItemClick(url)}
+                  onClick={() => handlePlaylistItemClick(video)}
                   style={{
                     cursor: 'pointer',
                     color: isDarkMode ? 'white' : 'gray',
@@ -637,14 +652,14 @@ const YouTubePlayer: React.FC = () => {
                       style={{ marginLeft: '8px', color: isDarkMode ? 'white' : 'black' }}
                       onClick={playVideo}
                     >
-                      {title} |Uploaded:  {new Date(publishedAt).toLocaleDateString() || ''} | {views} views | {likes} likes
+                      {video.title} |Uploaded:  {new Date(video.publishedAt).toLocaleDateString() || ''} | {video.views} views | {video.likes} likes
                     </span>
                   </div>
                   <Button
                     icon={<DeleteOutlined />}
                     onClick={(e) => {
                       e.stopPropagation();
-                      removeFromPlaylist(url);
+                      removeFromPlaylist(video.url);
                     }}
                     style={{ color: isDarkMode ? 'white' : 'black', border: 'none', background: 'transparent' }}
                   />
