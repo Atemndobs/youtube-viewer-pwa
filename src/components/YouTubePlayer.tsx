@@ -52,7 +52,11 @@ const YouTubePlayer: React.FC = () => {
   };
 
   const validatedUrl = validateAndConvertYouTubeUrl(inputUrl);
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
+  // Initialize isDarkMode from local storage
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    const storedDarkMode = localStorage.getItem('darkMode');
+    return storedDarkMode !== null ? JSON.parse(storedDarkMode) : true; // Default to true (dark mode)
+  });
   const playVideo = () => player?.playVideo();
   const stopVideo = () => player?.stopVideo();
   const rewindVideo = () => player?.seekTo((player?.getCurrentTime() || 0) - 10, true);
@@ -387,7 +391,10 @@ const YouTubePlayer: React.FC = () => {
     }
   };
 
-
+  // Update local storage when isDarkMode changes
+  useEffect(() => {
+    localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
+  }, [isDarkMode]);
 
   return (
     <Layout>
