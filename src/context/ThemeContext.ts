@@ -2,7 +2,7 @@ import React, { createContext, useState, useEffect } from 'react';
 
 export const ThemeContext = createContext<{ isDarkMode: boolean; toggleTheme: () => void }>({
   isDarkMode: false,
-  toggleTheme: () => {},
+  toggleTheme: () => {}, // Initialize toggleTheme as a function
 });
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
