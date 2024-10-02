@@ -11,3 +11,17 @@ __pycache__/
 db.sqlite3
 .DS_Store
 .aider*
+.env
+__Constants__
+pages/api/add-to-playlist.ts
+appwrite-docker-compose.yml
+appwrite.env
+/playlist-collection
+yt_bk_
+pages/pp.tsx
+src/components/Typ_bk
+/public/fav_2
+/public/fav_icons_2
+/public/yt_viewer_icons
+public/icos_1
+/images

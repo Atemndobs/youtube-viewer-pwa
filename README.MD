@@ -1,8 +1,8 @@
-# YouTube Viewer Refine App
+# YouTube Viewer App
 
 ## Overview
 
-The **YouTube Viewer Refine App** is a web application built with Next.js and the Refine framework, allowing users to view and control YouTube videos. It also includes a Chrome extension that loads the current tab's URL into the input field of the app.
+The **YouTube Viewer App** is a web application built with Next.js and the Refine framework, allowing users to view and control YouTube videos. It also includes a Chrome extension that loads the current tab's URL into the input field of the app.
 
 ## Features
 
@@ -20,7 +20,7 @@ The **YouTube Viewer Refine App** is a web application built with Next.js and th
 1. **Clone the Repository**
 
    ```bash
-   git clone https://github.com/your-username/youtube-viewer.git
+   git clone https://github.com/Atemndobs/youtube-viewer.git
    cd youtube-viewer
 Install Dependencies
 

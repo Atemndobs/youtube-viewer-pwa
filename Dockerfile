@@ -7,11 +7,14 @@ WORKDIR /app
 # Copy package.json and package-lock.json
 COPY package*.json ./
 
-# Install dependencies
+# Install dependencies, including development dependencies
 RUN npm install
 
 # Copy the rest of the application code
 COPY . .
+
+# Install TypeScript types for ws
+RUN npm install --save-dev @types/ws
 
 # Build the Next.js application
 RUN npm run build

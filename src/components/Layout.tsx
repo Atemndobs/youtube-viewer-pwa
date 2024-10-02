@@ -1,32 +1,35 @@
-import React from 'react';
-import { Layout as AntLayout, Menu } from 'antd';
+// src/components/Layout.tsx
+import React, { useContext } from 'react';
+import { Layout as AntLayout } from 'antd';
 import 'antd/dist/reset.css'; // Import Ant Design CSS
 import 'tailwindcss/tailwind.css'; // Ensure Tailwind CSS is imported
+import Link from 'next/link'; // Import Link for Next.js navigation
+import { ThemeContext } from '../context/ThemeContext'; // Adjust path if necessary
 
-const { Header, Content, Footer } = AntLayout;
+const { Content, Footer } = AntLayout;
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const themeContext = useContext(ThemeContext);
+
+  if (!themeContext) {
+    // Handle missing context error (e.g., if the provider is not found)
+    throw new Error('ThemeContext must be used within a ThemeProvider');
+  }
+
+  const { isDarkMode } = themeContext;
+
   return (
-    <AntLayout className="min-h-screen">
-
-{/* 
-      <Header className="bg-black text-gray-400 sticky top-0 z-0">
-        <div className="container mx-auto flex items-center justify-between h-full">
-          <div className="text-xl font-bold text-center flex-grow">
-            YouTube Video Viewer
-          </div>
-        </div>
-      </Header>
-       */}
-
-      {/* Main Content */}
-      <Content className="bg-black flex-grow">
-      {children}
+    <AntLayout className={`min-h-screen ${isDarkMode ? 'bg-black text-gray-400' : 'bg-white text-gray-800'}`}>
+      <script async src="https://cse.google.com/cse.js?cx=675971d1c62a24514"></script>
+      <Content className={`flex-grow ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
+        {children}
       </Content>
 
       {/* Footer */}
-      <Footer className="bg-black text-gray-600 text-center py-4">
+      <Footer className={`text-center py-4 ${isDarkMode ? 'bg-black text-gray-600' : 'bg-white text-gray-800'}`}>
         &copy; {new Date().getFullYear()} ATEM. All Rights Reserved.
+        <br />
+        <Link href="/privacy-policy" className="text-blue-500">Privacy Policy</Link>
       </Footer>
     </AntLayout>
   );

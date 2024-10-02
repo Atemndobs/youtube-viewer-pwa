@@ -6,3 +6,7 @@ npm-debug.log
 .gitignore
 *.md
 *.log
+./src/YT_Websocket_bk.tsx
+./YT_Websocket_bk.tsx
+.env
+__Constants__
