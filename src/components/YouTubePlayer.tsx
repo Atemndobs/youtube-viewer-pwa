@@ -35,7 +35,9 @@ const YouTubePlayer: React.FC = () => {
 
   const generateDeviceId = () => {
     const newDeviceId = generateRandomUsername()
-    localStorage.setItem('deviceId', newDeviceId );
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem('deviceId', newDeviceId );
+    }
     return newDeviceId;
   };
 
@@ -54,8 +56,11 @@ const YouTubePlayer: React.FC = () => {
   const validatedUrl = validateAndConvertYouTubeUrl(inputUrl);
   // Initialize isDarkMode from local storage
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
-    const storedDarkMode = localStorage.getItem('darkMode');
-    return storedDarkMode !== null ? JSON.parse(storedDarkMode) : true; // Default to true (dark mode)
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const storedDarkMode = window.localStorage.getItem('darkMode');
+      return storedDarkMode !== null ? JSON.parse(storedDarkMode) : true; // Default to true (dark mode)
+    }
+    return true; // Default to true (dark mode) if localStorage is not available
   });
   const playVideo = () => player?.playVideo();
   const stopVideo = () => player?.stopVideo();
@@ -88,16 +93,17 @@ const YouTubePlayer: React.FC = () => {
   useEffect(() => {
     // Check if deviceId is passed in URL or generate a new one
     const urlDeviceId = getDeviceIdFromUrl();
-    const storedDeviceId = localStorage.getItem('deviceId');
-
-    if (urlDeviceId) {
-      setDeviceId(urlDeviceId);
-      localStorage.setItem('deviceId', urlDeviceId); // Store it in local storage for future use
-    } else if (storedDeviceId) {
-      setDeviceId(storedDeviceId);
-    } else {
-      const newDeviceId = generateDeviceId();
-      setDeviceId(newDeviceId);
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const storedDeviceId = window.localStorage.getItem('deviceId');
+      if (urlDeviceId) {
+        setDeviceId(urlDeviceId);
+        window.localStorage.setItem('deviceId', urlDeviceId); // Store it in local storage for future use
+      } else if (storedDeviceId) {
+        setDeviceId(storedDeviceId);
+      } else {
+        const newDeviceId = generateDeviceId();
+        setDeviceId(newDeviceId);
+      }
     }
   }, []);
 
@@ -393,7 +399,9 @@ const YouTubePlayer: React.FC = () => {
 
   // Update local storage when isDarkMode changes
   useEffect(() => {
-    localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
+    }
   }, [isDarkMode]);
 
   return (
