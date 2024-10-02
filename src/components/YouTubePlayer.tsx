@@ -523,7 +523,7 @@ const YouTubePlayer: React.FC = () => {
             renderItem={({ url, title }) => (
               <List.Item
                 onClick={() => handlePlaylistItemClick(url)}
-                style={{ cursor: 'pointer', color: 'gray', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                style={{ cursor: 'pointer', color: isDarkMode ? 'white' : 'gray', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
               >
 
                 <div style={{ display: 'flex', alignItems: 'center' }}>
