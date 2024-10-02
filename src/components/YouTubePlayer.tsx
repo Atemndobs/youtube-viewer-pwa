@@ -1,12 +1,24 @@
+// src/components/YouTubePlayer.tsx
 import React, { useState, useEffect } from 'react';
 import YouTube from 'react-youtube';
 import { Avatar, Layout, Card, Input, Button, Space, Switch, List, notification, Pagination } from 'antd';
-import { PlayCircleOutlined, StopOutlined, BackwardOutlined, ForwardOutlined, MinusCircleOutlined, DeleteOutlined, UnorderedListOutlined, UserOutlined, MoonOutlined, SunOutlined, PlusOutlined, PlaySquareFilled, SyncOutlined,  StepBackwardOutlined, StepForwardOutlined } from '@ant-design/icons';
-import { getYouTubePlaylistVideos, getYouTubeVideoTitle, isValidYouTubeUrl, validateAndConvertYouTubeUrl } from '../utils';
-import { appwriteClient, appwriteDatabase } from '../utils/appwrite/client'; // Import your Appwrite client setup
-import { COLLECTION_ID, DATABASE_ID } from 'src/utils/constants';
-
-
+import {
+  PlayCircleOutlined,
+  StopOutlined,
+  BackwardOutlined,
+  ForwardOutlined,
+  MinusCircleOutlined,
+  DeleteOutlined,
+  UnorderedListOutlined,
+  UserOutlined,
+  MoonOutlined,
+  SunOutlined,
+  SyncOutlined,
+  StepBackwardOutlined,
+  StepForwardOutlined
+} from '@ant-design/icons';
+import { getYouTubePlaylistVideos, isValidYouTubeUrl, validateAndConvertYouTubeUrl, generateRandomUsername } from '../utils';
+import pb from '../utils/pocketbaseClient';
 
 const { Content } = Layout;
 
@@ -22,10 +34,17 @@ const YouTubePlayer: React.FC = () => {
   const [itemsPerPage] = useState(5); // Adjust as needed
 
   const generateDeviceId = () => {
-    const newDeviceId = Math.random().toString(36).substring(2) + Date.now().toString(36);
-    localStorage.setItem('deviceId', newDeviceId);
+    const newDeviceId = generateRandomUsername()
+    localStorage.setItem('deviceId', newDeviceId );
     return newDeviceId;
   };
+
+  const getUsername = () => {
+    let parts = deviceId.split('-');  // Split the deviceId by '-'
+    let username = parts.slice(0, 3).join('-');  // Join only the first three parts
+    return username;
+}
+
 
   const getDeviceIdFromUrl = () => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -41,19 +60,10 @@ const YouTubePlayer: React.FC = () => {
   
   const [currentIndex, setCurrentIndex] = useState(0); // Track the current video index
 
-
-
-  interface PlaylistPayload {
-    deviceId: string;
-    url: string;
-    title: string;
-  }
-
   interface PlaylistItem {
     url: string;
     title: string;
   }
-
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const url = e.target.value;
@@ -75,7 +85,6 @@ const YouTubePlayer: React.FC = () => {
     // Check if deviceId is passed in URL or generate a new one
     const urlDeviceId = getDeviceIdFromUrl();
     const storedDeviceId = localStorage.getItem('deviceId');
-
 
     if (urlDeviceId) {
       setDeviceId(urlDeviceId);
@@ -113,59 +122,63 @@ const YouTubePlayer: React.FC = () => {
     setIsPlayerReady(true);
   };
 
-  // Fetch playlist from Appwrite on component mount
-  useEffect(() => {
-    const deviceId = localStorage.getItem('deviceId') || generateDeviceId(); // Generate or retrieve deviceId
-    appwriteClient.subscribe(`databases.${DATABASE_ID}.collections.${COLLECTION_ID}.documents`, response => {
-      const payload = response.payload as PlaylistPayload; // Cast to the expected type
-      const subscribedDeviceId = payload.deviceId;
-      const url = payload.url;
-      const events = response.events;
-      const title = payload.title
-
-      if (deviceId === subscribedDeviceId && events.includes('databases.*.collections.*.documents.*.create')) {
-        console.log('---------inside create event subscribe------------------');
-        setPlaylist(prevPlaylist => {
-          console.log('Previous playlist ==================');
-          console.log({ prevPlaylist });
-          if (!prevPlaylist.some(item => item.url === url)) {
-            return [{ url, title }, ...prevPlaylist];
-          }
-          return prevPlaylist; // Return the playlist unchanged if the URL is already present
-        });
-      }
-
-    })
-
+  // Fetch playlist from PocketBase on component mount
+  useEffect(() => {``
+    subscribeToPlaylist();
     fetchPlaylist();
   }, []);
+
+  // create a function to subscribe to the playlist collection for this deviceId in pocketbase and update the playlist state
+  const subscribeToPlaylist = async () => {
+    const deviceId = localStorage.getItem('deviceId') || generateDeviceId();
+    pb.collection('playlist').subscribe('*', (data) => {
+      console.log('Playlist updated:', {
+        deviceId,
+        data
+      });
+      
+      if (data.action === 'create' && data.record.deviceId === deviceId) {
+        // Add new item to the playlist
+        const newItem: PlaylistItem = {
+          url: data.record.url,
+          title: data.record.title
+        };
+        setPlaylist(prevPlaylist => {
+          if (!prevPlaylist.some(item => item.url === newItem.url)) {
+            return [newItem, ...prevPlaylist];
+          }
+          return prevPlaylist;
+        });
+      } else if (data.action === 'delete' && data.record.deviceId === deviceId) {
+        // Remove item from the playlist
+        setPlaylist(prevPlaylist => prevPlaylist.filter(item => item.url !== data.record.url));
+      } else if (data.action === 'update' && data.record.deviceId === deviceId) {
+        // Update existing item in the playlist
+        setPlaylist(prevPlaylist => prevPlaylist.map(item => 
+          item.url === data.record.url ? { ...item, title: data.record.title } : item
+        ));
+      }
+    });
+  };
+
 
   const fetchPlaylist = async () => {
     const deviceId = localStorage.getItem('deviceId') || generateDeviceId();
     try {
-      const response = await fetch('/api/playlist', {
-        method: 'GET',
-        headers: { 'device-id': deviceId },
+      pb.autoCancellation(false)
+      const records = await pb.collection('playlist').getFullList({
+        sort: '-created',
+        filter: `deviceId = "${deviceId}"`
       });
-  
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Fetched playlist from server:', data);
-        if (data.playlist) {
-          const items = data.playlist.map((item: string) => item);
-          setPlaylist(items.reverse()); // Reverse the order of the playlist items to match the UI
-        } else {
-          notification.warning({
-            message: 'No Playlist Found',
-            description: 'The playlist is currently empty.',
-          });
-        }
-      } else {
-        notification.error({
-          message: 'Error fetching playlist',
-          description: 'Failed to load the playlist from the server.' + deviceId,
-        });
-      }
+      
+      const items = records.map(record => ({
+        url: record.url,
+        title: record.title,
+        id: record._id,
+        deviceId: record.deviceId
+      }));
+      
+      setPlaylist(items);
     } catch (error) {
       console.error('Failed to fetch playlist:', error);
       notification.error({
@@ -320,46 +333,44 @@ const YouTubePlayer: React.FC = () => {
     }
   };
 
-
-    // Function to skip to the next video in the playlist
-    const skipToNext = () => {
+  // Function to skip to the next video in the playlist
+  const skipToNext = () => {
+    if (currentIndex < playlist.length - 1) {
       const nextIndex = currentIndex + 1;
-      if (nextIndex < playlist.length) {
-        setCurrentIndex(nextIndex);
-        const nextVideo = playlist[nextIndex];
-        const id = nextVideo.url.split('v=')[1]?.split('&')[0];
-        setVideoId(id || '');
-        setIsPlayerReady(false);
-        if (autoPlay) {
-          setTimeout(() => player?.playVideo(), 500);
-        }
-      } else {
-        console.log('No more videos in the playlist');
-      }
-    };
-  
-    // Function to skip to the previous video in the playlist
-    const skipToPrevious = () => {
-      setCurrentIndex((prevIndex) => {
-        if (prevIndex <= 0) {
-          notification.info({
-            message: "Start of Playlist",
-            description: "You're already at the first video.",
-          });
-          return prevIndex; // Keep the same index if it's the first video
-        }
-        const newIndex = prevIndex - 1;
-        const prevVideo = playlist[newIndex];
-        const id = prevVideo.url.split('v=')[1]?.split('&')[0];
-        setVideoId(id || '');
-        setIsPlayerReady(false);
-        if (autoPlay) {
-          setTimeout(() => player?.playVideo(), 500);
-        }
-        return newIndex; // Update to the new index
+      setCurrentIndex(nextIndex);
+      playVideoAtIndex(nextIndex);
+    } else {
+      notification.info({
+        message: "End of Playlist",
+        description: "You've reached the end of the playlist.",
       });
-    };
-    
+    }
+  };
+
+  // Function to skip to the previous video in the playlist
+  const skipToPrevious = () => {
+    if (currentIndex > 0) {
+      const prevIndex = currentIndex - 1;
+      setCurrentIndex(prevIndex);
+      playVideoAtIndex(prevIndex);
+    } else {
+      notification.info({
+        message: "Start of Playlist",
+        description: "You're already at the first video.",
+      });
+    }
+  };
+
+  // Helper function to play video at a specific index
+  const playVideoAtIndex = (index: number) => {
+    const video = playlist[index];
+    const id = video.url.split('v=')[1]?.split('&')[0];
+    setVideoId(id || '');
+    setIsPlayerReady(false);
+    if (autoPlay) {
+      setTimeout(() => player?.playVideo(), 500);
+    }
+  };
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -369,13 +380,12 @@ const YouTubePlayer: React.FC = () => {
   const endIndex = startIndex + itemsPerPage;
   const paginatedPlaylist = playlist.slice(startIndex, endIndex);
 
-// Function to handle the end of a video
-const onPlayerStateChange = (event: YT.OnStateChangeEvent) => {
-  if (event.data === YT.PlayerState.ENDED && playlist.length > 0) {
-    skipToNext();
-  }
-};
-
+  // Function to handle the end of a video
+  const onPlayerStateChange = (event: YT.OnStateChangeEvent) => {
+    if (event.data === YT.PlayerState.ENDED && playlist.length > 0) {
+      skipToNext();
+    }
+  };
 
 
 
@@ -413,7 +423,7 @@ const onPlayerStateChange = (event: YT.OnStateChangeEvent) => {
               {/* User Info with Icon  */}
               <div className="flex items-center">
                 <Avatar icon={<UserOutlined />} className="mr-2" />
-                <span className="text-gray-400">{deviceId}</span>
+                <span className="text-gray-400">{getUsername()}</span>
               </div>
             </div>
           }
@@ -431,8 +441,6 @@ const onPlayerStateChange = (event: YT.OnStateChangeEvent) => {
             }}
             className="mb-5 bg-gray-400"
           />
-
-
           {/* Conditionally render the Add to Playlist button */}
           {inputUrl.trim() !== '' && (
             <Button type="primary" onClick={addToPlaylist} className="mb-5">
@@ -477,7 +485,7 @@ const onPlayerStateChange = (event: YT.OnStateChangeEvent) => {
                 <span>Watchlist</span>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                   <UnorderedListOutlined style={{ marginRight: '8px', color: 'white' }} />
-                  <span style={{ color: 'white', marginRight: '16px' }}>{playlist.length}</span> {/* Playlist counter */}
+                  <span style={{ color: 'white', marginRight: '16px' }}>{playlist.length}</span>
                   <Button
                     icon={<SyncOutlined />}
                     onClick={fetchPlaylist}
@@ -523,32 +531,6 @@ const onPlayerStateChange = (event: YT.OnStateChangeEvent) => {
                   style={{ color: isDarkMode ? 'white' : 'black', border: 'none', background: 'transparent' }}
                 />
               </List.Item>
-
-
-            //   <List.Item
-            //   actions={[
-            //     <Button
-            //       icon={<DeleteOutlined />}
-            //       danger
-            //       onClick={() => removeFromPlaylist(url)}
-            //     />,
-            //   ]}
-            // >
-            //   <List.Item.Meta
-            //     avatar={<Avatar icon={<PlayCircleOutlined />} />}
-            //     title={
-            //       <span
-            //         style={{
-            //           color: isDarkMode ? '#ffffff' : '#000000', // Change color based on dark mode
-            //         }}
-            //         onClick={() => handlePlaylistItemClick(url)}
-            //       >
-            //         {title}
-            //       </span>
-            //     }
-            //     description={url}
-            //   />
-            // </List.Item>
             )}
           />
               <Pagination
