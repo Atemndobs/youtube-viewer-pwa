@@ -55,13 +55,29 @@ const YouTubePlayer: React.FC = () => {
 
   const validatedUrl = validateAndConvertYouTubeUrl(inputUrl);
   // Initialize isDarkMode from local storage
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+  const [isDarkMode, setIsDarkMode] = useState(false); // Initialize to false (light mode)
+
+  useEffect(() => {
+    // Check if deviceId is passed in URL or generate a new one
+    const urlDeviceId = getDeviceIdFromUrl();
     if (typeof window !== 'undefined' && window.localStorage) {
+      const storedDeviceId = window.localStorage.getItem('deviceId');
+      if (urlDeviceId) {
+        setDeviceId(urlDeviceId);
+        window.localStorage.setItem('deviceId', urlDeviceId); // Store it in local storage for future use
+      } else if (storedDeviceId) {
+        setDeviceId(storedDeviceId);
+      } else {
+        const newDeviceId = generateDeviceId();
+        setDeviceId(newDeviceId);
+      }
+      // Get the stored dark mode preference
       const storedDarkMode = window.localStorage.getItem('darkMode');
-      return storedDarkMode !== null ? JSON.parse(storedDarkMode) : true; // Default to true (dark mode)
+      // Set the initial state of isDarkMode based on local storage
+      setIsDarkMode(storedDarkMode !== null ? JSON.parse(storedDarkMode) : true); // Default to true (dark mode) if not found
     }
-    return true; // Default to true (dark mode) if localStorage is not available
-  });
+  }, []);
+
   const playVideo = () => player?.playVideo();
   const stopVideo = () => player?.stopVideo();
   const rewindVideo = () => player?.seekTo((player?.getCurrentTime() || 0) - 10, true);
@@ -89,23 +105,6 @@ const YouTubePlayer: React.FC = () => {
       });
     }
   };
-
-  useEffect(() => {
-    // Check if deviceId is passed in URL or generate a new one
-    const urlDeviceId = getDeviceIdFromUrl();
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const storedDeviceId = window.localStorage.getItem('deviceId');
-      if (urlDeviceId) {
-        setDeviceId(urlDeviceId);
-        window.localStorage.setItem('deviceId', urlDeviceId); // Store it in local storage for future use
-      } else if (storedDeviceId) {
-        setDeviceId(storedDeviceId);
-      } else {
-        const newDeviceId = generateDeviceId();
-        setDeviceId(newDeviceId);
-      }
-    }
-  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
