@@ -20,11 +20,14 @@ import {
 import { getYouTubePlaylistVideos, isValidYouTubeUrl, validateAndConvertYouTubeUrl, generateRandomUsername } from '../utils';
 import pb from '../utils/pocketbaseClient';
 import { ThemeContext } from '../context/ThemeContext';
+import { lockfilePatchPromise } from 'next/dist/build/swc';
 
 const { Content } = Layout;
 
 const YouTubePlayer: React.FC = () => {
   const [videoId, setVideoId] = useState('');
+  const [videoStats, setVideoStats] = useState<{ uploadedAt: string, views: number, likes: number } | null>(null);
+  const [videoTitle, setVideoTitle] = useState('');
   const [player, setPlayer] = useState<YT.Player | null>(null);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [autoPlay, setAutoPlay] = useState(true);
@@ -33,6 +36,7 @@ const YouTubePlayer: React.FC = () => {
   const [deviceId, setDeviceId] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5); // Adjust as needed
+
   const themeContext = useContext(ThemeContext);
   const animalIcons = [
     <span role="img" aria-label="monkey">🐒</span>,
@@ -145,13 +149,10 @@ const YouTubePlayer: React.FC = () => {
   const stopVideo = () => player?.stopVideo();
   const rewindVideo = () => player?.seekTo((player?.getCurrentTime() || 0) - 10, true);
   const forwardVideo = () => player?.seekTo((player?.getCurrentTime() || 0) + 10, true);
-
+  const [currentVideo, setCurrentVideo] = useState<PlaylistItem | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0); // Track the current video index
 
-  interface PlaylistItem {
-    url: string;
-    title: string;
-  }
+
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const url = e.target.value;
@@ -201,6 +202,13 @@ const YouTubePlayer: React.FC = () => {
     fetchPlaylist();
   }, []);
 
+  interface PlaylistItem {
+    url: string;
+    title: string;
+    publishedAt?: string;
+    views?: number;
+    likes?: number;
+  }
   // create a function to subscribe to the playlist collection for this deviceId in pocketbase and update the playlist state
   const subscribeToPlaylist = async () => {
     const deviceId = localStorage.getItem('deviceId') || generateDeviceId();
@@ -214,7 +222,10 @@ const YouTubePlayer: React.FC = () => {
         // Add new item to the playlist
         const newItem: PlaylistItem = {
           url: data.record.url,
-          title: data.record.title
+          title: data.record.title,
+          publishedAt: data.record.publishedAt || 'No Date',
+          views: data.record.views || 0,
+          likes: data.record.likes || 0
         };
         setPlaylist(prevPlaylist => {
           if (!prevPlaylist.some(item => item.url === newItem.url)) {
@@ -248,7 +259,10 @@ const YouTubePlayer: React.FC = () => {
         url: record.url,
         title: record.title,
         id: record._id,
-        deviceId: record.deviceId
+        deviceId: record.deviceId,
+        publishedAt: record.publishedAt,
+        views: record.views,
+        likes: record.likes,
       }));
 
       setPlaylist(items);
@@ -572,6 +586,9 @@ const YouTubePlayer: React.FC = () => {
                 Skip
               </Button>
             </Space>
+            <Space style={{ display: 'flex', justifyContent: 'space-around' }}>
+              {}
+            </Space>
             <List
               header={
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: isDarkMode ? 'white' : 'black' }}>
@@ -596,7 +613,7 @@ const YouTubePlayer: React.FC = () => {
               }
               bordered
               dataSource={paginatedPlaylist}
-              renderItem={({ url, title }) => (
+              renderItem={({ url, title, publishedAt, views, likes }) => (
                 <List.Item
                   onClick={() => handlePlaylistItemClick(url)}
                   style={{
@@ -620,7 +637,7 @@ const YouTubePlayer: React.FC = () => {
                       style={{ marginLeft: '8px', color: isDarkMode ? 'white' : 'black' }}
                       onClick={playVideo}
                     >
-                      {title}
+                      {title} |Uploaded:  {new Date(publishedAt).toLocaleDateString() || ''} | {views} views | {likes} likes
                     </span>
                   </div>
                   <Button
