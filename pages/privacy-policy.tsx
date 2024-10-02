@@ -1,18 +1,27 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { Button, Layout, Typography } from 'antd';
 import { useRouter } from 'next/router';
 import { SunOutlined, MoonOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import Link from 'next/link';
+import { ThemeContext } from '../src/context/ThemeContext';
 
 const { Content } = Layout;
 const { Title, Paragraph } = Typography;
 
 const PrivacyPolicy: React.FC = () => {
   const router = useRouter();
-  const [isDarkMode, setIsDarkMode] = React.useState<boolean>(true);
+
+  const themeContext = useContext(ThemeContext);
+
+  if (!themeContext) {
+    // Handle missing context error (e.g., if the provider is not found)
+    throw new Error('useContext must be used within a ThemeProvider');
+  }
+
+  const { isDarkMode, toggleTheme } = themeContext;
 
   const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
+    toggleTheme();
   };
 
   return (

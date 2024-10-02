@@ -6,8 +6,13 @@ module.exports = {
     './src/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        lightText: '#000000',  // Default light mode text color (black)
+        darkText: '#ffffff',   // Default dark mode text color (white)
+      },
+    },
   },
-  darkMode: 'class', // or 'media'
+  darkMode: 'class', // Enables class-based dark mode
   plugins: [],
 };

@@ -4,6 +4,10 @@ import { create } from 'zustand';
 interface PlaylistItem {
   url: string;
   title: string;
+  publishedAt: string,
+  views: number,
+  likes: number
+
 }
 
 interface PlaylistStore {

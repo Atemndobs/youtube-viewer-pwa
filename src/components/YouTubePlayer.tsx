@@ -15,7 +15,10 @@ import {
   SunOutlined,
   SyncOutlined,
   StepBackwardOutlined,
-  StepForwardOutlined
+  StepForwardOutlined,
+  CalendarOutlined,
+  EyeOutlined,
+  HeartOutlined
 } from '@ant-design/icons';
 import { getYouTubePlaylistVideos, isValidYouTubeUrl, validateAndConvertYouTubeUrl, generateRandomUsername } from '../utils';
 import pb from '../utils/pocketbaseClient';
@@ -149,10 +152,28 @@ const YouTubePlayer: React.FC = () => {
   const stopVideo = () => player?.stopVideo();
   const rewindVideo = () => player?.seekTo((player?.getCurrentTime() || 0) - 10, true);
   const forwardVideo = () => player?.seekTo((player?.getCurrentTime() || 0) + 10, true);
+  const [currentVideo, setCurrentVideo] = useState<PlaylistItem | null>(null);
+  const [currentIndex, setCurrentIndex] = useState(0); // Track the current video index
+
+
+  // Helper function to format views and likes
+  const formatNumber = (num: number | undefined) => {
+    if (!num) return '0';
+    if (num >= 1_000_000) {
+      return (num / 1_000_000).toFixed(1) + 'M';
+    } else if (num >= 1_000) {
+      return (num / 1_000).toFixed(1) + 'K';
+    }
+    return num.toString();
+  };
+
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return 'No Date';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-DE', { year: 'numeric', month: 'short', day: '2-digit' });
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    
-    const url = e.target.value;
-    setInputUrl(url.trim());
     const url = e.target.value;
     setInputUrl(url.trim());
 
@@ -178,34 +199,17 @@ const YouTubePlayer: React.FC = () => {
     return () => clearTimeout(timer);
   }, [videoId, isPlayerReady, player, autoPlay]);
 
-    if (isValidYouTubeUrl(url)) {
-      const id = url.includes('list=') ? '' : url.split('v=')[1]?.split('&')[0];
-      setVideoId(id || '');
-      setIsPlayerReady(false);
-    } else {
-      notification.error({
-        message: 'Invalid URL',
-        description: 'Please enter a valid YouTube URL.',
-      });
-    }
-  };
-
-  const setCurrentVideo = (video: PlaylistItem | null) => {
-    setCurrentVideo(video);
-  };
-
-  const handlePlaylistItemClick = (video: PlaylistItem) => {
-    setCurrentVideo(video);
-    const id = video.url.split('v=')[1]?.split('&')[0];
+  const handlePlaylistItemClick = (url: string) => {
+    const id = url.split('v=')[1]?.split('&')[0];
     setVideoId(id || '');
-    setInputUrl(video.url);
+    setInputUrl(url);
     setIsPlayerReady(false);
     if (autoPlay) {
       setTimeout(() => player?.playVideo(), 500);
     }
   };
 
-  const onPlayerReady = (event: { target: YT.Player }) => {    
+  const onPlayerReady = (event: { target: YT.Player }) => {
     setPlayer(event.target);
     setIsPlayerReady(true);
   };
@@ -224,6 +228,13 @@ const YouTubePlayer: React.FC = () => {
     views?: number;
     likes?: number;
   }
+  const setCurrentSong = (video: PlaylistItem) => {
+    // First, play the video
+    playVideo();
+
+    // Then, store the current song in the state
+    setCurrentVideo(video);
+  };
   // create a function to subscribe to the playlist collection for this deviceId in pocketbase and update the playlist state
   const subscribeToPlaylist = async () => {
     const deviceId = localStorage.getItem('deviceId') || generateDeviceId();
@@ -544,7 +555,7 @@ const YouTubePlayer: React.FC = () => {
         >
           <Space direction="vertical" style={{ width: '100%' }}>
             {/* Flex container for the input and button */}
-            <div style={{ display: 'flex'}}>
+            <div style={{ display: 'flex' }}>
               {/* Add to Playlist button */}
               {inputUrl.trim() !== '' && (
                 <Button type="primary" onClick={addToPlaylist} style={{ marginRight: '8px' }}>
@@ -577,10 +588,27 @@ const YouTubePlayer: React.FC = () => {
                   opts={{ width: '100%', height: '100%' }}
                   style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'black' }}
                   onStateChange={onPlayerStateChange} // Add onStateChange handler
-                  
+
                 />
               </div>
             )}
+
+            <Space style={{ display: 'flex', justifyContent: 'space-around', marginBottom: '16px', fontSize: '16px', color: '#595959' }}>
+              {/* Display Stats with Icons */}
+              <span>
+                <CalendarOutlined style={{ marginRight: '8px' }} />
+                Uploaded on: {formatDate(currentVideo?.publishedAt)}
+              </span>
+              <span>
+                <EyeOutlined style={{ marginRight: '8px' }} />
+                Views: {formatNumber(currentVideo?.views)}
+              </span>
+              <span>
+                <HeartOutlined style={{ marginRight: '8px' }} />
+                Likes: {formatNumber(currentVideo?.likes)}
+              </span>
+            </Space>
+
             <Space style={{ display: 'flex', justifyContent: 'space-around' }}>
               <Button type="link" icon={<PlayCircleOutlined />} onClick={playVideo}>
                 Play
@@ -600,9 +628,6 @@ const YouTubePlayer: React.FC = () => {
               <Button type="link" icon={<StepForwardOutlined />} onClick={skipToNext}>
                 Skip
               </Button>
-            </Space>
-            <Space style={{ display: 'flex', justifyContent: 'space-around' }}>
-              {}
             </Space>
             <List
               header={
@@ -630,7 +655,7 @@ const YouTubePlayer: React.FC = () => {
               dataSource={paginatedPlaylist}
               renderItem={(video: PlaylistItem) => (
                 <List.Item
-                  onClick={() => handlePlaylistItemClick(video)}
+                  onClick={() => handlePlaylistItemClick(video.url)}
                   style={{
                     cursor: 'pointer',
                     color: isDarkMode ? 'white' : 'gray',
@@ -643,16 +668,15 @@ const YouTubePlayer: React.FC = () => {
                     <Button
                       type="link"
                       icon={<PlayCircleOutlined />}
-                      onClick={playVideo}
+                      onClick={() => setCurrentSong(video)} // Trigger setCurrentSong on Play
                       style={{ color: isDarkMode ? 'white' : 'black' }}
                     >
                       Play
                     </Button>
                     <span
                       style={{ marginLeft: '8px', color: isDarkMode ? 'white' : 'black' }}
-                      onClick={playVideo}
                     >
-                      {video.title} |Uploaded:  {new Date(video.publishedAt).toLocaleDateString() || ''} | {video.views} views | {video.likes} likes
+                      {video.title}
                     </span>
                   </div>
                   <Button

@@ -1,6 +1,6 @@
 {
   "name": "youtube-viewer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "scripts": {
     "build": "NEXT_SKIP_TYPE_CHECK=true refine build && rimraf .next/cache",
@@ -16,7 +16,6 @@
     "@refinedev/simple-rest": "^5.0.8",
     "@types/react-youtube": "^7.6.2",
     "antd": "^5.20.3",
-    "appwrite": "^15.0.0",
     "classnames": "^2.3.2",
     "cross-env": "^7.0.3",
     "dayjs": "^1.10.7",
@@ -27,6 +26,7 @@
     "js-cookie": "^3.0.5",
     "next": "^14.2.7",
     "node-appwrite": "^14.0.0",
+    "pocketbase": "^0.21.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-use-websocket": "^4.8.1",
