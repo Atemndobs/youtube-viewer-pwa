@@ -2,41 +2,6 @@
 
 const YOUTUBE_API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY || ''; // Ensure this is in your .env
 
-// export const getYouTubeVideoTitle = async (url: string): Promise<string | null> => {
-//   const videoIdMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-
-//   if (!videoIdMatch || !YOUTUBE_API_KEY) {
-//     console.error('Invalid video URL or missing YouTube API key');
-//     return null;
-//   }
-
-//   const videoId = videoIdMatch[1];
-//   const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${YOUTUBE_API_KEY}&part=snippet`;
-
-//   try {
-//     const response = await fetch(apiUrl);
-  
-//     if (!response.ok) {
-//       console.error('Failed to fetch YouTube video title:', response.statusText);
-//       return null;
-//     }
-  
-//     const data = await response.json();
-//     const items = data.items;
-  
-//     if (items && items.length > 0) {
-//       return items[0].snippet.title;
-//     } else {
-//       console.error('No video data found');
-//       return null;
-//     }
-//   } catch (error) {
-//     console.error('Failed to fetch YouTube video title:', error);
-//     return null;
-//   }
-// };
-
-
 // Define a type for the expected video response
 interface YouTubeVideoResponse {
   items: {
