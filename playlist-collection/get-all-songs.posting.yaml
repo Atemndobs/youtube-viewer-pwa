@@ -1,8 +1,0 @@
-name: Get all Songs
-description: Get request to get all plalist for a device
-url: https://viewer.atemkeng.de/api/playlist
-headers:
-- name: Content-Type
-  value: application/json
-- name: device-id
-  value: e01afyb70mcm0s9naeh

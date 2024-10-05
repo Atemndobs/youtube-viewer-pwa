@@ -1,15 +1,16 @@
-@tailwind base;
+/* @tailwind base;
 @tailwind components;
-@tailwind utilities;
+@tailwind utilities; */
 
 /* Light mode styles */
-body {
-    @apply bg-gray-300 text-lightText;
+/* body { */
+    /* @apply bg-gray-300 text-lightText; */
     /* Tailwind classes */
-}
+/* } */
 
 /* Dark mode styles */
-body.dark-mode {
-    @apply bg-black text-darkText;
+/* body.dark-mode { */
+    /* @apply bg-black text-darkText; */
     /* Tailwind classes for dark mode */
-}
+/* } */
+

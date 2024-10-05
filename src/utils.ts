@@ -101,6 +101,9 @@ export const validateAndConvertYouTubeUrl = (url: string): string | null => {
 export const getYouTubePlaylistVideos = async (playlistUrl: string): Promise<string[] | null> => {
   const playlistIdMatch = playlistUrl.match(/[&?]list=([a-zA-Z0-9_-]+)/);
 
+  console.log("THIS ISA PLAYLIST ID MATCH", playlistIdMatch);
+  
+
   if (!playlistIdMatch || !YOUTUBE_API_KEY) {
     console.error('Invalid playlist URL or missing YouTube API key');
     return null;
