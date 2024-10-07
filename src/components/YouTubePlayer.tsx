@@ -21,7 +21,8 @@ import {
   HeartOutlined,
   ReloadOutlined,
   SortAscendingOutlined,
-  SortDescendingOutlined
+  SortDescendingOutlined,
+  ShareAltOutlined
 } from '@ant-design/icons';
 import { getYouTubePlaylistVideos, isValidYouTubeUrl, validateAndConvertYouTubeUrl, generateRandomUsername } from '../utils';
 import pb from '../utils/pocketbaseClient';
@@ -66,43 +67,51 @@ const YouTubePlayer: React.FC = () => {
   const { isDarkMode, toggleTheme } = themeContext;
 
 
+  // const animalIcons = [
+  //   <span role="img" aria-label="monkey">🐒</span>,
+  //   <span role="img" aria-label="dog">🐕</span>,
+  //   <span role="img" aria-label="cat">🐈</span>,
+  //   <span role="img" aria-label="fox">🦊</span>,
+  //   <span role="img" aria-label="lion">🦁</span>,
+  //   <span role="img" aria-label="elephant">🐘</span>,
+  //   <span role="img" aria-label="panda">🐼</span>,
+  //   <span role="img" aria-label="tiger">🐅</span>,
+  //   <span role="img" aria-label="rabbit">🐇</span>,
+  //   <span role="img" aria-label="bear">🐻</span>,
+  //   <span role="img" aria-label="frog">🐸</span>,
+  //   <span role="img" aria-label="penguin">🐧</span>,
+  //   <span role="img" aria-label="koala">🐨</span>,
+  //   <span role="img" aria-label="chicken">🐔</span>,
+  //   <span role="img" aria-label="snake">🐍</span>,
+  //   <span role="img" aria-label="hedgehog">🦔</span>,
+  //   <span role="img" aria-label="whale">🐳</span>,
+  //   <span role="img" aria-label="dolphin">🐬</span>,
+  //   <span role="img" aria-label="zebra">🦓</span>,
+  //   <span role="img" aria-label="giraffe">🦒</span>,
+  //   <span role="img" aria-label="deer">🦌</span>,
+  //   <span role="img" aria-label="turtle">🐢</span>,
+  //   <span role="img" aria-label="octopus">🐙</span>,
+  //   <span role="img" aria-label="scorpion">🦂</span>,
+  //   <span role="img" aria-label="bat">🦇</span>,
+  //   <span role="img" aria-label="squid">🦑</span>,
+  //   <span role="img" aria-label="kangaroo">🦘</span>,
+  //   <span role="img" aria-label="otter">🦦</span>,
+  //   <span role="img" aria-label="camel">🐫</span>,
+  //   <span role="img" aria-label="parrot">🦜</span>,
+  //   <span role="img" aria-label="fish">🐟</span>,
+  //   <span role="img" aria-label="ant">🐜</span>,
+  //   <span role="img" aria-label="bee">🐝</span>,
+  //   <span role="img" aria-label="butterfly">🦋</span>,
+  //   <span role="img" aria-label="wine">🍷</span>,
+  // ];
+
   const animalIcons = [
-    <span role="img" aria-label="monkey">🐒</span>,
-    <span role="img" aria-label="dog">🐕</span>,
-    <span role="img" aria-label="cat">🐈</span>,
-    <span role="img" aria-label="fox">🦊</span>,
-    <span role="img" aria-label="lion">🦁</span>,
-    <span role="img" aria-label="elephant">🐘</span>,
-    <span role="img" aria-label="panda">🐼</span>,
-    <span role="img" aria-label="tiger">🐅</span>,
-    <span role="img" aria-label="rabbit">🐇</span>,
-    <span role="img" aria-label="bear">🐻</span>,
-    <span role="img" aria-label="frog">🐸</span>,
-    <span role="img" aria-label="penguin">🐧</span>,
-    <span role="img" aria-label="koala">🐨</span>,
-    <span role="img" aria-label="chicken">🐔</span>,
-    <span role="img" aria-label="snake">🐍</span>,
-    <span role="img" aria-label="hedgehog">🦔</span>,
-    <span role="img" aria-label="whale">🐳</span>,
-    <span role="img" aria-label="dolphin">🐬</span>,
-    <span role="img" aria-label="zebra">🦓</span>,
-    <span role="img" aria-label="giraffe">🦒</span>,
-    <span role="img" aria-label="deer">🦌</span>,
-    <span role="img" aria-label="turtle">🐢</span>,
-    <span role="img" aria-label="octopus">🐙</span>,
-    <span role="img" aria-label="scorpion">🦂</span>,
-    <span role="img" aria-label="bat">🦇</span>,
-    <span role="img" aria-label="squid">🦑</span>,
-    <span role="img" aria-label="kangaroo">🦘</span>,
-    <span role="img" aria-label="otter">🦦</span>,
-    <span role="img" aria-label="camel">🐫</span>,
-    <span role="img" aria-label="parrot">🦜</span>,
-    <span role="img" aria-label="fish">🐟</span>,
-    <span role="img" aria-label="ant">🐜</span>,
-    <span role="img" aria-label="bee">🐝</span>,
-    <span role="img" aria-label="butterfly">🦋</span>,
-    <span role="img" aria-label="wine">🍷</span>,
+    '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐨', '🐯', '🦁',
+    '🐮', '🐷', '🐽', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔',
+    '🦃', '🐧', '🐦', '🐤', '🐣', '🐥', '🐺', '🐗', '🐴', '🦄',
+    '🐝', '🐛', '🕷', '🦂', '🦋', '🐙', '🦑', '🦘', '🦦', '🐫'
   ];
+
 
   const getAnimalIcon = () => {
     return animalIcons[currentIconIndex];
@@ -358,6 +367,29 @@ const YouTubePlayer: React.FC = () => {
     }
   };
 
+  const shareWatchlist = async () => {
+    const currentUrl = window.location.href;
+
+    try {
+      // Check if the native share API is available
+      await navigator.clipboard.writeText(currentUrl);
+      notification.success({
+        message: 'Share Link Copied!',
+        description: 'Watchlist been successfully copied to your clipboard.',
+        placement: 'bottomRight',
+      });
+    } catch (error) {
+      console.error('Error sharing or copying URL: ', error);
+      notification.error({
+        message: 'Error',
+        description: 'There was an issue copying or sharing the URL.',
+        placement: 'bottomRight',
+      });
+    }
+  };
+
+
+
   // Add to Playlist function
   const addToPlaylist = async () => {
     const validatedUrl = validateAndConvertYouTubeUrl(inputUrl); // Corrected name
@@ -442,14 +474,30 @@ const YouTubePlayer: React.FC = () => {
         }
       }
 
-      setInputUrl(''); // Clear the input after adding
-      handlePlaylistItemClick(currentItems[currentIndex].url);
+      if (currentItems.length > 0) {
+        setPlaylist(currentItems);
+        handlePlaylistItemClick(currentItems[currentIndex].url);
+      }
     } catch (error) {
-      console.error('Error fetching video or playlist:', error);
-      notification.error({
-        message: 'Error',
-        description: 'An error occurred while adding the URL to the playlist.',
-      });
+      console.error('Failed to fetch Watchlist:', error);
+      // if the playlist or currentItems are empty, set message to 'No playlist found'
+      if (playlist.length === 0 || currentItems.length === 0) {
+        notification.info({
+          message: 'No Watchlist Item found',
+          description: 'Please add a playlist or video to the watchlist.',
+        });
+      } else if (playlist.length || currentItems.length > 0) {
+        // notification.info({
+        //   message: 'Watchlist updated',
+        //   description: 'Please add a playlist or video to the watchlist.',
+        // });
+      } else {
+        console.error('Error fetching video or Watchlist:', error);
+        notification.error({
+          message: 'Error',
+          description: 'An error occurred while adding the URL to the playlist.',
+        });
+      }
     }
   };
 
@@ -558,32 +606,25 @@ const YouTubePlayer: React.FC = () => {
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const moveVideo = (dragIndex: number, hoverIndex: number) => {
     const updatedPlaylist = [...playlist];
-    const [movedVideo] = updatedPlaylist.splice(dragIndex, 1);
-    updatedPlaylist.splice(hoverIndex, 0, movedVideo);
-    setPlaylist(updatedPlaylist); // Update the state with the new playlist order
+
+    // Use absolute indices to reorder the full playlist
+    const absoluteDragIndex = dragIndex; // Since dragIndex already corresponds to the full playlist
+    const absoluteHoverIndex = hoverIndex;
+
+    const [movedVideo] = updatedPlaylist.splice(absoluteDragIndex, 1); // Remove the video from its original position
+    updatedPlaylist.splice(absoluteHoverIndex, 0, movedVideo); // Insert the video in the new position
+
+    setPlaylist(updatedPlaylist); // Update the state with the reordered playlist
   };
 
-  // Sort playlist based on sortDirection
-  const sortedPlaylist = [...playlist].sort((a, b) => {
-    if (sortDirection === 'asc') {
-      return a.title.localeCompare(b.title);
-    } else {
-      return b.title.localeCompare(a.title);
-    }
-  });
-
   // Paginate the sorted playlist
-  const currentItems = sortedPlaylist.slice(indexOfFirstItem, indexOfLastItem);
-
-
-
+  const currentItems = playlist.slice(indexOfFirstItem, indexOfLastItem);
   // In the component:
   const isMobile = useMediaQuery({ maxWidth: 640 }); // Adjust for mobile
   if (!isClient) {
     // While on the server, avoid rendering mobile-specific content
     return null;
   }
-
 
 
 
@@ -608,6 +649,11 @@ const YouTubePlayer: React.FC = () => {
                 paddingTop: isMobile ? '20px' : '0px',
               }}
             >
+              <Button
+                icon={<ShareAltOutlined />}
+                onClick={shareWatchlist}
+                style={{ color: isDarkMode ? 'white' : 'black', border: 'none', background: 'transparent' }}
+              />
               {isMobile && (
                 <Button
                   icon={<ReloadOutlined />}
@@ -688,9 +734,6 @@ const YouTubePlayer: React.FC = () => {
                 }}
               />
             </div>
-
-
-
             {videoId && (
               // add video stats: when was uploaded, how many views and likes
               <div style={{ marginBottom: '20px', position: 'relative', paddingTop: '56.25%', background: 'black' }}>
@@ -737,7 +780,6 @@ const YouTubePlayer: React.FC = () => {
                 justifyContent: 'space-around',
                 gap: '8px', // Adjust the gap to control the spacing between buttons
               }}
-
             >
               <Button type="link" icon={<PlayCircleOutlined />} onClick={playVideo}>
                 {isMobile ? '' : 'Play'}
@@ -758,14 +800,14 @@ const YouTubePlayer: React.FC = () => {
                 {isMobile ? '' : 'Skip'}
               </Button>
             </Space>
-
             <DndProvider backend={HTML5Backend}>
               <List
                 header={
                   <div style={{
                     display: 'flex',
                     justifyContent: 'space-between',
-                    alignItems: 'center', color: isDarkMode ? 'white' : 'black'
+                    alignItems: 'center',
+                    color: isDarkMode ? 'white' : 'black'
                   }}>
                     <span>Watchlist</span>
                     <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -779,12 +821,12 @@ const YouTubePlayer: React.FC = () => {
                         onClick={fetchPlaylist}
                         style={{ color: isDarkMode ? 'white' : 'black', border: 'none', background: 'transparent' }}
                       />
-                      <Button
+                      {/* <Button
                         onClick={() => setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'))}
                         style={{ color: isDarkMode ? 'white' : 'black', border: 'none', background: 'transparent' }}
                       >
                         {sortDirection === 'asc' ? <SortDescendingOutlined /> : <SortAscendingOutlined />}
-                      </Button>
+                      </Button> */}
                       <Button
                         icon={<MinusCircleOutlined />}
                         onClick={clearPlaylist}
@@ -796,23 +838,22 @@ const YouTubePlayer: React.FC = () => {
                   </div>
                 }
                 bordered
-                dataSource={currentItems}
+                dataSource={currentItems} // Use paginated items here
                 renderItem={(video, index) => (
                   <DraggableListItem
                     key={video.url}
                     video={video}
-                    index={index + indexOfFirstItem} // Full index for drag-and-drop
+                    index={index + indexOfFirstItem} // Calculate index correctly
                     moveVideo={moveVideo}
                     setCurrentSong={setCurrentSong}
-                    removeFromPlaylist={removeFromPlaylist} // Remove video from playlist
-                    isDarkMode={isDarkMode} // Add your dark mode logic here
+                    removeFromPlaylist={removeFromPlaylist}
+                    isDarkMode={isDarkMode}
                   />
                 )}
-                style={{ 
+                style={{
                   paddingRight: isMobile ? '8px' : '0px',
                   paddingBottom: isMobile ? '8px' : '0px',
-                 }}
-
+                }}
               />
               <Pagination
                 current={currentPage}
@@ -822,8 +863,6 @@ const YouTubePlayer: React.FC = () => {
                 style={{ display: 'flex', justifyContent: 'center', marginTop: '16px', fontSize: '12px' }}
               />
             </DndProvider>
-
-
           </Space>
         </Card>
 

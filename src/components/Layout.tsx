@@ -28,7 +28,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       {/* Footer */}
       <Footer className={`text-center py-4 ${isDarkMode ? 'bg-black text-gray-600' : 'bg-white text-gray-800'}`}>
         &copy; {new Date().getFullYear() + ' '} 
-        Version {process.env.NEXT_PUBLIC_VERSION}
+        Version {process.env.NEXT_PUBLIC_VERSION || '1.0.2'}
 
         <br />
         <Link href="/privacy-policy" className="text-blue-500">Privacy Policy</Link>

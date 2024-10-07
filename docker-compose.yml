@@ -25,7 +25,7 @@
 services:
   web:
     # build: .
-    image: atemndobs/viewer-pwa-amd64:v2.1.9
+    image: atemndobs/viewer-pwa-amd64:v2.1.2
     container_name: viewer-pwa
     ports:
       - "3400:3000"
